@@ -1,0 +1,397 @@
+" Don't try to be vi compatible
+set nocompatible
+set cpoptions-=C
+
+call plug#begin('~/.vim/plugged')
+" The following are examples of different formats supported.
+" Keep Plugin commands between vundle#begin/end.
+" plugin on GitHub repo
+Plug 'tpope/vim-fugitive'
+" plugin from http://vim-scripts.org/vim/scripts.html
+" Plugin 'L9'
+" Git plugin not hosted on GitHub
+" git repos on your local machine (i.e. when working on your own plugin)
+"Plugin 'file:///home/gmarik/path/to/plugin'
+" The sparkup vim script is in a subdirectory of this repo called vim.
+" Pass the path to set the runtimepath properly.
+Plug 'rstacruz/sparkup', {'rtp': 'vim/'}
+" Install L9 and avoid a Naming conflict if you've already installed a
+" different version somewhere else.
+" Plugin 'ascenator/L9', {'name': 'newL9'}
+
+Plug 'sjl/badwolf'
+
+Plug 'itchyny/lightline.vim'
+
+Plug 'tomtom/tcomment_vim'
+
+Plug 'reedes/vim-colors-pencil'
+
+Plug 'nathanaelkane/vim-indent-guides'
+
+Plug 'Valloric/YouCompleteMe'
+
+Plug 'LucHermitte/lh-vim-lib'
+
+Plug 'LucHermitte/lh-style'
+
+Plug 'LucHermitte/lh-tags'
+
+Plug 'LucHermitte/lh-dev'
+
+Plug 'LucHermitte/lh-brackets'
+
+Plug 'LucHermitte/searchInRuntime'
+
+Plug 'LucHermitte/mu-template'
+
+Plug 'pseewald/vim-anyfold'
+
+Plug 'tomtom/stakeholders_vim'
+
+Plug 'LucHermitte/alternate-lite'
+
+Plug 'LucHermitte/lh-cpp'
+
+"Plug 'octol/vim-cpp-enhanced-highlight'
+Plug 'bfrg/vim-cpp-modern'
+
+Plug 'vim-scripts/indentpython.vim'
+
+Plug 'jupyter-vim/jupyter-vim'
+
+Plug 'lervag/vimtex'
+
+Plug 'JuliaEditorSupport/julia-vim'
+
+Plug 'neomake/neomake'
+
+Plug 'zyedidia/julialint.vim'
+
+Plug 'rhysd/vim-grammarous'
+
+Plug 'rhysd/vim-clang-format'
+
+Plug 'https://github.com/machakann/vim-swap.git'
+
+Plug 'nvim-telescope/telescope.nvim'
+
+Plug 'nvim-lua/plenary.nvim'
+
+Plug 'nvim-telescope/telescope-fzf-native.nvim', { 'do': 'cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build' }
+
+Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
+
+Plug 'nvim-tree/nvim-web-devicons'
+
+Plug 'prettier/vim-prettier', {
+  \ 'do': 'yarn install --frozen-lockfile --production',
+  \ 'for': ['javascript', 'typescript', 'css', 'less', 'scss', 'json', 'graphql', 'markdown', 'vue', 'svelte', 'yaml', 'html'] }
+
+Plug 'pangloss/vim-javascript'
+
+Plug 'rickhowe/spotdiff.vim'
+
+Plug 'psf/black', { 'branch': 'stable' }
+
+Plug 'neovim/nvim-lspconfig'
+
+" Plug 'mg979/vim-visual-multi', {'branch': 'master'}
+
+"Plugin 'scrooloose/syntastic'
+
+" Initialize plugin system
+call plug#end()
+" All of your Plugins must be added before the following line
+"
+" Brief help
+" :PluginList       - lists configured plugins
+" :PluginInstall    - installs plugins; append `!` to update or just :PluginUpdate
+" :PluginSearch foo - searches for foo; append `!` to refresh local cache
+" :PluginClean      - confirms removal of unused plugins; append `!` to auto-approve removal
+"
+" see :h vundle for more details or wiki for FAQ
+" Put your non-Plugin stuff after this line
+" 
+" Turn on syntax highlighting
+syntax on
+
+colorscheme badwolf
+" Make the tab line darker than the background.
+let g:badwolf_tabline = 2
+
+if $COLORTERM == 'gnome-terminal'
+    set t_Co=256
+endif
+
+" For plugins to load correctly
+filetype plugin indent on
+
+" TODO: Pick a leader key
+let mapleader = ","
+
+" Security
+set modelines=0
+
+" Show line numbers
+set number
+
+" Show file stats
+set ruler
+
+" Blink cursor on error instead of beeping (grr)
+set visualbell
+
+" Encoding
+set encoding=utf-8
+
+" Whitespace
+set wrap
+set textwidth=79
+set formatoptions=tcqrn1
+set tabstop=4
+set shiftwidth=4
+set softtabstop=4
+set expandtab
+set noshiftround
+set autoindent
+set smartindent
+
+" Cursor motion
+set scrolloff=3
+set backspace=indent,eol,start
+set matchpairs+=<:> " use % to jump between pairs
+runtime! macros/matchit.vim
+
+" Move up/down editor lines
+nnoremap j gj
+nnoremap k gk
+
+" Allow hidden buffers
+set hidden
+
+" Rendering
+set ttyfast
+
+" Status bar
+set laststatus=2
+
+" Last line
+set showmode
+set showcmd
+
+" Searching
+nnoremap / /\v
+vnoremap / /\v
+set hlsearch
+set incsearch
+set ignorecase
+set smartcase
+set showmatch
+nnoremap * *``
+map <leader><space> :let @/=''<cr> " clear search
+
+" Remap help key.
+inoremap <F1> <ESC>:set invfullscreen<CR>a
+nnoremap <F1> :set invfullscreen<CR>
+vnoremap <F1> :set invfullscreen<CR>
+
+set undofile   " Maintain undo history between sessions
+set undodir=~/.vim/undodir
+
+" Formatting
+map <leader>q gqip
+
+" Visualize tabs and newlines
+set listchars=tab:▸\ ,eol:¬
+" Uncomment this to enable by default:
+" set list " To enable by default
+" Or use your leader key + l to toggle on/off
+map <leader>l :set list!<CR> " Toggle tabs and EOL
+
+" Color scheme (terminal)
+set t_Co=256
+set background=dark
+let g:solarized_termcolors=256
+let g:solarized_termtrans=1
+
+" command-t
+" let g:CommandTPreferredImplementation='ruby'
+
+"No templates when new file is created"
+let g:mt_IDontWantTemplatesAutomaticallyInserted = 1
+
+" YCM settings
+"Closes YouCompleteMe window after completion
+let g:ycm_autoclose_preview_window_after_insertion = 1
+" YCM set extra config file
+let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
+" let g:ycm_use_clangd=1
+let g:ycm_clangd_binary_path = '/usr/bin/clangd'
+let g:ycm_clangd_args = ['-limit-results=15000', '--header-insertion=never']
+
+" fix meta-keys which generate <Esc>a .. <Esc>z
+if !has('nvim')
+    let c='a'
+    while c <= 'z'
+      exec "set <M-".toupper(c).">=\e".c
+      exec "imap \e".c." <M-".toupper(c).">"
+      let c = nr2char(1+char2nr(c))
+    endw
+    set <M-1>=^[1
+else
+    lua require'lspconfig'.pyright.setup{}
+endif
+
+" If fuzzy finder installed using git
+set rtp+=~/.fzf
+
+"Set relative numbers
+set number relativenumber
+
+"Custom key-maps"
+map <F2> :YcmCompleter FixIt<CR>
+map <leader>g :YcmCompleter GoTo<CR>
+map <leader>G :YcmCompleter GoToDefinition<CR>
+map <leader>t :YcmCompleter GetType<CR>
+map <leader>h :YcmCompleter GoToAlternateFile<CR>
+map <leader>r :YcmCompleter RefactorRename 
+
+map <F6> :JupyterRunFile<CR>
+map <F5> :JupyterSendCell<CR>
+map <F8> :PythonSetBreak<CR>
+map <F9> :JupyterRunFile %:p --verbose --plot <CR>
+map <F11> :JupyterCd %:p:h<CR>
+map <F12> :JupyterConnect<CR>
+
+map <C-c> "+y
+map <leader><C-c> "+yy
+
+map <leader>b :bp<CR>
+map <leader>n :bn<CR>
+
+map <leader>1 :b 1<CR>
+map <leader>2 :b 2<CR>
+map <leader>3 :b 3<CR>
+map <leader>4 :b 4<CR>
+map <leader>5 :b 5<CR>
+map <leader>6 :b 6<CR>
+map <leader>7 :b 7<CR>
+map <leader>8 :b 8<CR>
+map <leader>9 :b 9<CR>
+
+autocmd BufWritePre *.h,*.cc,*.cpp,*.cu,*.ino,*.vert,*.frag map <leader>f :ClangFormat<CR>
+autocmd BufNewFile,BufRead *.js map <leader>f :PrettierAsync<CR>
+autocmd BufNewFile,BufRead *.py map <leader>f :Black<CR>
+
+" Make Y yank till end of line
+nnoremap Y y$
+
+" Add '\n\r' in inser mode. I'm tired of writing it all the time.
+inoremap <C-B> \n\r
+
+"Timeout
+set timeoutlen=1000
+set ttimeoutlen=5
+
+au BufNewFile,BufRead *.py set encoding=utf-8
+au BufNewFile,BufRead *.py set tabstop=4
+
+autocmd FileType make set noexpandtab shiftwidth=8 softtabstop=0
+autocmd BufNewFile,BufRead *.vert   set syntax=cpp
+autocmd BufNewFile,BufRead *.frag   set syntax=cpp
+
+"Vim-TeX settings
+let g:tex_flavor = 'latex'
+let g:vimtex_view_method = 'zathura'
+
+" Spell check
+set spell spelllang=en_us
+au BufRead,BufNewFile *.md,*.txt,*.tex set spell spelllang=en_us
+autocmd FileType markdown set spell spelllang=en_us
+autocmd FileType gitcommit set spell spelllang=en_us
+
+hi clear SpellBad
+hi SpellBad cterm=underline
+" Set style for gVim
+hi SpellBad gui=undercurl
+
+let g:grammarous#hooks = {}
+function! g:grammarous#hooks.on_check(errs) abort
+    nmap <buffer><C-n> <Plug>(grammarous-move-to-next-error)
+    nmap <buffer><C-p> <Plug>(grammarous-move-to-previous-error)
+endfunction
+
+function! g:grammarous#hooks.on_reset(errs) abort
+    nunmap <buffer><C-n>
+    nunmap <buffer><C-p>
+endfunction
+
+let g:grammarous#default_comments_only_filetypes = {
+            \ '*' : 1, 'help' : 0, 'markdown' : 0, 'gitcommit' : 0,
+            \ }
+
+"No python line splits
+set formatoptions-=tc
+
+let g:latex_to_unicode_auto = 1
+
+au BufRead,BufNewFile *.cmds set filetype=cmds
+autocmd FileType cmds setlocal commentstring=#\ %s
+
+" Folding settings
+filetype plugin indent on " required
+autocmd Filetype * AnyFoldActivate               " activate for all filetypes
+set foldlevel=2  " close all folds
+
+" Autoformat
+let g:clang_format#detect_style_file = 1
+" let g:clang_format#auto_format = 1
+" let g:clang_format#auto_format_on_insert_leave = 1
+" let g:clang_format#auto_formatexpr = ["c", "cpp", "objc", "java", "javascript", "typescript", "proto", "arduino", "cc", "h", "cu", "vert", "frag"]
+
+function! Formatonsave_clang()
+  let l:formatdiff = 1
+  py3f /usr/share/clang/clang-format-13/clang-format.py
+endfunction
+autocmd BufWritePre *.h,*.cc,*.cpp,*.c,*.cu,*.ino,*.vert,*.frag call Formatonsave_clang()
+
+" autocmd BufWritePre *.js :PrettierAsync<CR>
+let g:prettier#autoformat = 1
+let g:prettier#autoformat_require_pragma = 0
+
+" Added gdb
+packadd termdebug
+
+" vimdiff different branches
+function! Diff(spec)
+    vertical new
+    setlocal bufhidden=wipe buftype=nofile nobuflisted noswapfile
+    let cmd = "++edit #"
+    if len(a:spec)
+        let cmd = "!git -C " . shellescape(fnamemodify(finddir('.git', '.;'), ':p:h:h')) . " show " . a:spec . ":#"
+    endif
+    execute "read " . cmd
+    silent 0d_
+    diffthis
+    wincmd p
+    diffthis
+endfunction
+command! -nargs=? Diff call Diff(<q-args>)
+
+" lh-brackets - delete tag instead of select.
+let g:marker_select_empty_marks=0
+
+" C++ syntax highlighting
+let g:cpp_attributes_highlight = 1
+let g:cpp_member_highlight = 1
+let g:cpp_simple_highlight = 1
+
+" let @d = 'yy,h/private p==0/:: bcâï¿½Ã½ad2f:f{hC;âï¿½Ã½a'
+let @d = 'yy,h/privatep==0/::bcýad2f:f{hC;ýa'
+
+" Find files using Telescope command-line sugar.
+nnoremap <leader>ff <cmd>Telescope find_files<cr>
+nnoremap <leader>fg <cmd>Telescope live_grep<cr>
+nnoremap <leader>fb <cmd>Telescope buffers<cr>
+nnoremap <leader>fh <cmd>Telescope help_tags<cr>
