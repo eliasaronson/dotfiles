@@ -126,4 +126,3 @@ alias vim="nvim"
 alias view="nvim -R"
 alias vimdiff="nvim -d"
 export PATH="$PATH:/home/intuicell/Downloads/julia-1.9.3/bin"
-
