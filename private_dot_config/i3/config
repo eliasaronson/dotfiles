@@ -15,10 +15,6 @@ default_floating_border normal
 # Hide borders
 hide_edge_borders none
 
-# Scratch pad
-bindsym $mod+Shift+Ctrl+0 mark "alpha", move scratchpad
-bindsym $mod+Shift+Ctrl+9 [con_mark="alpha"] scratchpad show
-
 # change borders
 #bindsym $mod+u border none
 bindsym $mod+y border pixel 1
@@ -39,7 +35,8 @@ bindsym $mod+Shift+q kill
 
 # start program launcher
 # bindsym $mod+d exec --no-startup-id dmenu_recency
-bindsym $mod+d exec --no-startup-id  i3-dmenu-desktop
+bindsym $mod+d exec /home/$USER/.config/scripts/dmenu_recency
+# bindsym $mod+d exec --no-startup-id  i3-dmenu-desktop
 
 # launch categorized menu
 bindsym $mod+z exec --no-startup-id morc_menu
@@ -278,9 +275,9 @@ for_window [class="Xfburn"] floating enable
 for_window [class="Intui"] floating enable
 for_window [class=" live"] floating enable
 for_window [class="juliacalc"] move scratchpad
+for_window [class="juliacalc"] resize set 800px 400px
 
-# exec_always --no-startup-id exec gnome-terminal -e "zsh -c python; read line";
-exec_always --no-startup-id "zsh -c 'exec gnome-terminal -e python & i3-msg move scratchpad'"
+exec_always --no-startup-id alacritty --class "juliacalc" -e /home/intuicell/Downloads/julia-1.9.3/bin/julia
 
 # switch to workspace with urgent window automatically
 for_window [urgent=latest] focus
