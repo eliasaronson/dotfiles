@@ -1,0 +1,30 @@
+CompileFlags:                     # Tweak the parse settings
+  # treat all files as C++, enable more warnings
+  Add: [-xc++, -xcuda, -std=c++23, -Wall, -Wno-missing-prototypes, -I/deps/spdlog/include, -stdlib=libstdc++-dev]
+  Remove: [-member_function_call_bad_type*, -generate-code*, -expt-relaxed-constexpr*, drv_unsupported_opt]
+  Compiler: g++               # Change argv[0] of compile flags to `clang++`
+
+Diagnostics:
+  # Tweak Clang-Tidy checks.
+  ClangTidy:
+    Add: [performance*, modernize*, readability*]
+    Remove: [modernize-use-trailing-return-type]
+    CheckOptions:
+      readability-identifier-naming.VariableCase: snake_case
+
+  # Suppress: [undeclared_var_use_suggest]
+
+# If:
+  # PathMatch: /usr/include/.*
+  # Suppress: "*"
+        
+#If:
+#  PathMatch: .*/spdlog/.*
+#    Diagnostics:
+#      Suppress: "*"
+#
+#If:
+#  PathMatch: .*/json_struct/.*
+#    Diagnostics:
+#      Suppress: "*"
+
