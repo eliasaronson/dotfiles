@@ -1,6 +1,7 @@
 CompileFlags:                     # Tweak the parse settings
   # treat all files as C++, enable more warnings
-  Add: [-xc++, -xcuda, -std=c++23, -Wall, -Wno-missing-prototypes, -I/deps/spdlog/include, -stdlib=libstdc++-dev]
+  # -std=c++2b
+  Add: [-xc++, -xcuda, -std=c++17, -Wall, -Wno-missing-prototypes, -I/deps/spdlog/include, -ferror-limit=0]
   Remove: [-member_function_call_bad_type*, -generate-code*, -expt-relaxed-constexpr*, drv_unsupported_opt]
   Compiler: g++               # Change argv[0] of compile flags to `clang++`
 
@@ -8,9 +9,9 @@ Diagnostics:
   # Tweak Clang-Tidy checks.
   ClangTidy:
     Add: [performance*, modernize*, readability*]
-    Remove: [modernize-use-trailing-return-type]
+    Remove: [modernize-use-trailing-return-type, readability-uppercase-literal-suffix, readability-isolate-declaration]
     CheckOptions:
-      readability-identifier-naming.VariableCase: snake_case
+      readability-identifier-naming.VariableCase: lower_case
 
   # Suppress: [undeclared_var_use_suggest]
 

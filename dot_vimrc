@@ -23,6 +23,8 @@ Plug 'sjl/badwolf'
 
 Plug 'itchyny/lightline.vim'
 
+Plug 'tsuyoshicho/StatuslineUpdateTimer.vim'
+
 Plug 'tomtom/tcomment_vim'
 
 Plug 'reedes/vim-colors-pencil'
@@ -53,9 +55,6 @@ Plug 'LucHermitte/alternate-lite'
 
 Plug 'LucHermitte/lh-cpp'
 
-"Plug 'octol/vim-cpp-enhanced-highlight'
-Plug 'bfrg/vim-cpp-modern'
-
 Plug 'vim-scripts/indentpython.vim'
 
 Plug 'jupyter-vim/jupyter-vim'
@@ -63,8 +62,6 @@ Plug 'jupyter-vim/jupyter-vim'
 Plug 'lervag/vimtex'
 
 Plug 'JuliaEditorSupport/julia-vim'
-
-Plug 'neomake/neomake'
 
 Plug 'zyedidia/julialint.vim'
 
@@ -74,27 +71,40 @@ Plug 'rhysd/vim-clang-format'
 
 Plug 'https://github.com/machakann/vim-swap.git'
 
-Plug 'nvim-telescope/telescope.nvim'
-
-Plug 'nvim-lua/plenary.nvim'
-
-Plug 'nvim-telescope/telescope-fzf-native.nvim', { 'do': 'cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build' }
-
-Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
-
-Plug 'nvim-tree/nvim-web-devicons'
-
-Plug 'prettier/vim-prettier', {
-  \ 'do': 'yarn install --frozen-lockfile --production',
-  \ 'for': ['javascript', 'typescript', 'css', 'less', 'scss', 'json', 'graphql', 'markdown', 'vue', 'svelte', 'yaml', 'html'] }
-
 Plug 'pangloss/vim-javascript'
 
 Plug 'rickhowe/spotdiff.vim'
 
 Plug 'psf/black', { 'branch': 'stable' }
 
-Plug 'neovim/nvim-lspconfig'
+
+if has('nvim')
+    Plug 'rktjmp/lush.nvim'
+    Plug 'file://'.expand('~/.config/nvim/badwolf2')
+
+    Plug 'nvim-telescope/telescope.nvim'
+
+    Plug 'nvim-lua/plenary.nvim'
+
+    Plug 'nvim-telescope/telescope-fzf-native.nvim', { 'do': 'cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build' }
+
+    Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
+
+    Plug 'nvim-tree/nvim-web-devicons'
+
+    Plug 'prettier/vim-prettier', {
+      \ 'do': 'yarn install --frozen-lockfile --production',
+      \ 'for': ['javascript', 'typescript', 'css', 'less', 'scss', 'json', 'graphql', 'markdown', 'vue', 'svelte', 'yaml', 'html'] }
+
+    Plug 'neovim/nvim-lspconfig'
+
+    Plug 'kylechui/nvim-surround'
+
+    Plug 'neomake/neomake'
+else
+    "Plug 'octol/vim-cpp-enhanced-highlight'
+    Plug 'bfrg/vim-cpp-modern'
+endif
 
 " Plug 'mg979/vim-visual-multi', {'branch': 'master'}
 
@@ -116,13 +126,39 @@ call plug#end()
 " Turn on syntax highlighting
 syntax on
 
-colorscheme badwolf
-" Make the tab line darker than the background.
-let g:badwolf_tabline = 2
+" Status line settings
+set noshowmode
+let g:StatuslineUpdateTimer#clockformat = '%H:%M'
+let g:lightline = {
+      \ 'colorscheme': 'solarized',
+      \ 'active': {
+      \   'left': [
+      \     [ 'mode', 'paste' ],
+      \     [ 'readonly', 'filename', 'modified' ]
+      \   ],
+      \   'right': [
+      \     ['clock'],
+      \     ['lineinfo', 'percent'],
+      \     ['fileformat', 'fileencoding', 'filetype'],
+      \   ]
+      \ },
+      \ 'component_function': {
+      \   'clock': 'StatuslineUpdateTimer#clock',
+      \ },
+      \ }
 
-if $COLORTERM == 'gnome-terminal'
-    set t_Co=256
-endif
+" Make the tab line darker than the background.
+colorscheme badwolf
+let g:badwolf_tabline = 2
+" set t_Co=256
+" color molokai
+" let g:molokai_original = 1
+" let g:rehash256 = 1
+
+" if $COLORTERM == 'gnome-terminal'
+    " set t_Co=256
+" endif
+set termguicolors
 
 " For plugins to load correctly
 filetype plugin indent on
@@ -227,8 +263,9 @@ let g:ycm_autoclose_preview_window_after_insertion = 1
 " YCM set extra config file
 let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
 " let g:ycm_use_clangd=1
-let g:ycm_clangd_binary_path = '/usr/bin/clangd'
-let g:ycm_clangd_args = ['-limit-results=15000', '--header-insertion=never']
+" let g:ycm_clangd_binary_path = '/usr/bin/clangd'
+let g:ycm_clangd_args = ['--limit-references=0', '-limit-results=0', '--header-insertion=never', '--log=verbose', '--query-driver=/usr/bin/g++', '--enable-config', '--clang-tidy']
+let g:ycm_max_diagnostics_to_display = 0
 
 " fix meta-keys which generate <Esc>a .. <Esc>z
 if !has('nvim')
@@ -239,8 +276,18 @@ if !has('nvim')
       let c = nr2char(1+char2nr(c))
     endw
     set <M-1>=^[1
+
+    " C++ syntax highlighting
+    let g:cpp_attributes_highlight = 1
+    let g:cpp_member_highlight = 1
+    let g:cpp_simple_highlight = 1
 else
-    lua require'lspconfig'.pyright.setup{}
+    " lua require'lspconfig'.pyright.setup{}
+    source ~/.config/nvim/lua/init.lua
+    colorscheme badwolf2
+    
+    setlocal cursorline
+    setlocal cursorcolumn
 endif
 
 " If fuzzy finder installed using git
@@ -352,7 +399,7 @@ let g:clang_format#detect_style_file = 1
 
 function! Formatonsave_clang()
   let l:formatdiff = 1
-  py3f /usr/share/clang/clang-format-13/clang-format.py
+  py3f /usr/share/clang/clang-format-14/clang-format.py
 endfunction
 autocmd BufWritePre *.h,*.cc,*.cpp,*.c,*.cu,*.ino,*.vert,*.frag call Formatonsave_clang()
 
@@ -381,11 +428,6 @@ command! -nargs=? Diff call Diff(<q-args>)
 
 " lh-brackets - delete tag instead of select.
 let g:marker_select_empty_marks=0
-
-" C++ syntax highlighting
-let g:cpp_attributes_highlight = 1
-let g:cpp_member_highlight = 1
-let g:cpp_simple_highlight = 1
 
 " let @d = 'yy,h/private p==0/:: bcâï¿½Ã½ad2f:f{hC;âï¿½Ã½a'
 let @d = 'yy,h/privatep==0/::bcýad2f:f{hC;ýa'

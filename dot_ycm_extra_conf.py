@@ -53,13 +53,13 @@ HEADER_EXTENSIONS = [
 HEADER_DIRECTORIES = [
         'include',
         'include/spdlog',
-        'lib',
-        '~/Arduino/libraries/',
-        '~/.arduino15/libraries',
-        '~/.arduino15/packages/arduino/hardware/avr/1.8.3/libraries/',
-        '.pioenvs/',
-        '.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/'
-        ]
+        'lib']
+        #'~/Arduino/libraries/',
+        #'~/.arduino15/libraries',
+        #'~/.arduino15/packages/arduino/hardware/avr/1.8.3/libraries/',
+        #'.pioenvs/',
+        #'.arduino15/packages/arduino/hardware/avr/1.8.3/cores/arduino/'
+        #]
 
 def IsHeaderFile(filename):
     extension = os.path.splitext(filename)[1]

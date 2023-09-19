@@ -46,10 +46,6 @@ bindsym XF86Launch3 exec --no-startup-id asusctl led-mode -n
 bindsym XF86Launch2 exec --no-startup-id asusctl led-mode -p
 #bindsym $mod+Shift+Right exec --no-startup-id asusctl led-mode -p
 
-## Added Caps+hjkl
-exec --no-startup-id xmodmap ~/.xmodmap
-exec --no-startup-id xcape -e 'Mode_switch=Escape'
-
 ################################################################################################
 ## sound-section - DO NOT EDIT if you wish to automatically upgrade Alsa -> Pulseaudio later! ##
 ################################################################################################
@@ -76,6 +72,9 @@ bindsym $mod+F3 exec gnome-control-center
 #bindsym $mod+Shift+u exec setxkbmap -layout us
 bindsym $mod+Shift+u exec setxkbmap -layout se
 bindsym $mod+u exec setxkbmap -layout se -variant US_swe
+
+## Added Caps+hjkl
+exec_always --no-startup-id xmodmap ~/.xmodmap
 
 # Enable prime-offloading, which is used by optimus-manager.
 exec --no-startup-id "prime-offload"

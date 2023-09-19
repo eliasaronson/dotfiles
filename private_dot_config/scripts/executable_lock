@@ -20,7 +20,7 @@ i3lock \
 --separator-color=$DEFAULT   \
 \
 --verif-color=$TEXT          \
---wrong-color=$TEXT          \
+--wrong-color=$BLANK          \
 --time-color=$TEXT           \
 --date-color=$TEXT           \
 --layout-color=$TEXT         \
