@@ -29,3 +29,8 @@ chezmoi apply --verbose
 # Github
 ~/scripts/gitalias.sh
 
+# Extra
+sudo pacman -S openfortivpn pyright noto-fonts-emoji spotify-launcher
+
+# Development
+sudo pacman -S cuda ncurses5-compat-libs opencl-nvidia nvidia-utils libsndfile
