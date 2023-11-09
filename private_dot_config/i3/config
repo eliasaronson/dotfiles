@@ -279,7 +279,7 @@ for_window [class="Matplotlib"] floating enable
 for_window [class="juliacalc"] move scratchpad
 for_window [class="juliacalc"] resize set 800px 400px
 
-exec_always --no-startup-id alacritty --class "juliacalc" -e /home/intuicell/Downloads/julia-1.9.3/bin/julia
+exec_always --no-startup-id alacritty --class "juliacalc" -e /home/$USER/julia-1.9.3/bin/julia
 
 # switch to workspace with urgent window automatically
 for_window [urgent=latest] focus
