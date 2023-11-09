@@ -6,7 +6,7 @@ call plug#begin('~/.vim/plugged')
 " The following are examples of different formats supported.
 " Keep Plugin commands between vundle#begin/end.
 " plugin on GitHub repo
-Plug 'tpope/vim-fugitive'
+" Plug 'tpope/vim-fugitive'
 " plugin from http://vim-scripts.org/vim/scripts.html
 " Plugin 'L9'
 " Git plugin not hosted on GitHub
@@ -14,10 +14,36 @@ Plug 'tpope/vim-fugitive'
 "Plugin 'file:///home/gmarik/path/to/plugin'
 " The sparkup vim script is in a subdirectory of this repo called vim.
 " Pass the path to set the runtimepath properly.
-Plug 'rstacruz/sparkup', {'rtp': 'vim/'}
+" Plug 'rstacruz/sparkup', {'rtp': 'vim/'}
 " Install L9 and avoid a Naming conflict if you've already installed a
 " different version somewhere else.
 " Plugin 'ascenator/L9', {'name': 'newL9'}
+
+Plug 'Valloric/YouCompleteMe'
+
+Plug 'SirVer/ultisnips'
+
+Plug 'honza/vim-snippets'
+
+Plug 'Raimondi/delimitMate'
+
+" Plug 'LucHermitte/lh-vim-lib'
+
+" Plug 'LucHermitte/lh-style'
+
+" Plug 'LucHermitte/lh-tags'
+
+" Plug 'LucHermitte/lh-dev'
+
+" Plug 'LucHermitte/lh-brackets'
+
+" Plug 'LucHermitte/searchInRuntime'
+
+" Plug 'LucHermitte/mu-template'
+
+" Plug 'LucHermitte/alternate-lite'
+
+" Plug 'LucHermitte/lh-cpp'
 
 Plug 'sjl/badwolf'
 
@@ -27,45 +53,25 @@ Plug 'tsuyoshicho/StatuslineUpdateTimer.vim'
 
 Plug 'tomtom/tcomment_vim'
 
-Plug 'reedes/vim-colors-pencil'
+" Plug 'reedes/vim-colors-pencil'
 
-Plug 'nathanaelkane/vim-indent-guides'
-
-Plug 'Valloric/YouCompleteMe'
-
-Plug 'LucHermitte/lh-vim-lib'
-
-Plug 'LucHermitte/lh-style'
-
-Plug 'LucHermitte/lh-tags'
-
-Plug 'LucHermitte/lh-dev'
-
-Plug 'LucHermitte/lh-brackets'
-
-Plug 'LucHermitte/searchInRuntime'
-
-Plug 'LucHermitte/mu-template'
+" Plug 'nathanaelkane/vim-indent-guides'
 
 Plug 'pseewald/vim-anyfold'
 
-Plug 'tomtom/stakeholders_vim'
-
-Plug 'LucHermitte/alternate-lite'
-
-Plug 'LucHermitte/lh-cpp'
+" Plug 'tomtom/stakeholders_vim'
 
 Plug 'vim-scripts/indentpython.vim'
 
 Plug 'jupyter-vim/jupyter-vim'
 
-Plug 'lervag/vimtex'
+" Plug 'lervag/vimtex'
 
 Plug 'JuliaEditorSupport/julia-vim'
 
-Plug 'zyedidia/julialint.vim'
+" Plug 'zyedidia/julialint.vim'
 
-Plug 'rhysd/vim-grammarous'
+" Plug 'rhysd/vim-grammarous'
 
 Plug 'rhysd/vim-clang-format'
 
@@ -75,8 +81,15 @@ Plug 'pangloss/vim-javascript'
 
 Plug 'rickhowe/spotdiff.vim'
 
+Plug 'mbbill/undotree'
+
 Plug 'psf/black', { 'branch': 'stable' }
 
+Plug 'lambdalisue/suda.vim'
+
+Plug 'prettier/vim-prettier', {
+            \ 'do': 'yarn install --frozen-lockfile --production',
+            \ 'for': ['javascript', 'typescript', 'css', 'less', 'scss', 'json', 'graphql', 'markdown', 'vue', 'svelte', 'yaml', 'html'] }
 
 if has('nvim')
     Plug 'rktjmp/lush.nvim'
@@ -92,15 +105,20 @@ if has('nvim')
 
     Plug 'nvim-tree/nvim-web-devicons'
 
-    Plug 'prettier/vim-prettier', {
-      \ 'do': 'yarn install --frozen-lockfile --production',
-      \ 'for': ['javascript', 'typescript', 'css', 'less', 'scss', 'json', 'graphql', 'markdown', 'vue', 'svelte', 'yaml', 'html'] }
-
     Plug 'neovim/nvim-lspconfig'
+
+    " Autocompletion
+    Plug 'williamboman/mason.nvim'
+    Plug 'williamboman/mason-lspconfig.nvim'
+    " Plug 'hrsh7th/nvim-cmp'
+    " Plug 'hrsh7th/cmp-nvim-lsp'
+    " Plug 'L3MON4D3/LuaSnip'
+
+    Plug 'VonHeikemen/lsp-zero.nvim', {'branch': 'v3.x'}
 
     Plug 'kylechui/nvim-surround'
 
-    Plug 'neomake/neomake'
+    " Plug 'neomake/neomake'
 else
     "Plug 'octol/vim-cpp-enhanced-highlight'
     Plug 'bfrg/vim-cpp-modern'
@@ -125,6 +143,7 @@ call plug#end()
 " 
 " Turn on syntax highlighting
 syntax on
+syntax enable
 
 " Status line settings
 set noshowmode
@@ -139,7 +158,6 @@ let g:lightline = {
       \   'right': [
       \     ['clock'],
       \     ['lineinfo', 'percent'],
-      \     ['fileformat', 'fileencoding', 'filetype'],
       \   ]
       \ },
       \ 'component_function': {
@@ -150,15 +168,14 @@ let g:lightline = {
 " Make the tab line darker than the background.
 colorscheme badwolf
 let g:badwolf_tabline = 2
-" set t_Co=256
-" color molokai
-" let g:molokai_original = 1
-" let g:rehash256 = 1
-
-" if $COLORTERM == 'gnome-terminal'
-    " set t_Co=256
-" endif
 set termguicolors
+
+" Color scheme (terminal)
+set t_Co=256
+set background=dark
+let g:solarized_termcolors=256
+let g:solarized_termtrans=1
+
 
 " For plugins to load correctly
 filetype plugin indent on
@@ -167,10 +184,12 @@ filetype plugin indent on
 let mapleader = ","
 
 " Security
-set modelines=0
+" set modelines=0
 
 " Show line numbers
 set number
+"Set relative numbers
+set number relativenumber
 
 " Show file stats
 set ruler
@@ -228,15 +247,13 @@ nnoremap * *``
 map <leader><space> :let @/=''<cr> " clear search
 
 " Remap help key.
-inoremap <F1> <ESC>:set invfullscreen<CR>a
-nnoremap <F1> :set invfullscreen<CR>
-vnoremap <F1> :set invfullscreen<CR>
+" inoremap <F1> <ESC>:set invfullscreen<CR>a
+" nnoremap <F1> :set invfullscreen<CR>
+" vnoremap <F1> :set invfullscreen<CR>
 
-set undofile   " Maintain undo history between sessions
+" Maintain undo history between sessions
+set undofile   
 set undodir=~/.vim/undodir
-
-" Formatting
-map <leader>q gqip
 
 " Visualize tabs and newlines
 set listchars=tab:▸\ ,eol:¬
@@ -245,27 +262,8 @@ set listchars=tab:▸\ ,eol:¬
 " Or use your leader key + l to toggle on/off
 map <leader>l :set list!<CR> " Toggle tabs and EOL
 
-" Color scheme (terminal)
-set t_Co=256
-set background=dark
-let g:solarized_termcolors=256
-let g:solarized_termtrans=1
-
-" command-t
-" let g:CommandTPreferredImplementation='ruby'
-
 "No templates when new file is created"
 let g:mt_IDontWantTemplatesAutomaticallyInserted = 1
-
-" YCM settings
-"Closes YouCompleteMe window after completion
-let g:ycm_autoclose_preview_window_after_insertion = 1
-" YCM set extra config file
-let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
-" let g:ycm_use_clangd=1
-" let g:ycm_clangd_binary_path = '/usr/bin/clangd'
-let g:ycm_clangd_args = ['--limit-references=0', '-limit-results=0', '--header-insertion=never', '--log=verbose', '--query-driver=/usr/bin/g++', '--enable-config', '--clang-tidy']
-let g:ycm_max_diagnostics_to_display = 0
 
 " fix meta-keys which generate <Esc>a .. <Esc>z
 if !has('nvim')
@@ -281,6 +279,7 @@ if !has('nvim')
     let g:cpp_attributes_highlight = 1
     let g:cpp_member_highlight = 1
     let g:cpp_simple_highlight = 1
+
 else
     " lua require'lspconfig'.pyright.setup{}
     source ~/.config/nvim/lua/init.lua
@@ -288,13 +287,44 @@ else
     
     setlocal cursorline
     setlocal cursorcolumn
+
+    nnoremap <buffer> K <cmd>lua vim.lsp.buf.hover()<cr>
+    nnoremap <buffer> gd <cmd>lua vim.lsp.buf.definition()<cr>
+    nnoremap <buffer> gD <cmd>lua vim.lsp.buf.declaration()<cr>
+    nnoremap <buffer> gi <cmd>lua vim.lsp.buf.implementation()<cr>
+    nnoremap <buffer> gt <cmd>lua vim.lsp.buf.type_definition()<cr>
+    nnoremap <buffer> gr <cmd>lua vim.lsp.buf.references()<cr>
+    nnoremap <buffer> <C-k> <cmd>lua vim.lsp.buf.signature_help()<cr>
+    nnoremap <buffer> <F3> <cmd>lua vim.lsp.buf.rename()<cr>
 endif
 
 " If fuzzy finder installed using git
 set rtp+=~/.fzf
 
-"Set relative numbers
-set number relativenumber
+" YCM settings
+"Closes YouCompleteMe window after completion
+let g:ycm_autoclose_preview_window_after_insertion = 1
+" YCM set extra config file
+let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
+" let g:ycm_use_clangd=1
+" let g:ycm_clangd_binary_path = '/usr/bin/clangd'
+let g:ycm_clangd_args = ['--limit-references=0', '-limit-results=0', '--header-insertion=never', '--log=verbose', '--query-driver=/usr/bin/g++', '--enable-config', '--clang-tidy']
+let g:ycm_max_diagnostics_to_display = 0
+let g:ycm_complete_in_comments = 1 
+let g:ycm_seed_identifiers_with_syntax = 1 
+let g:ycm_collect_identifiers_from_comments_and_strings = 1
+
+" Snippet settings
+" let g:UltiSnipsExpandTrigger="<c-space>"
+" let g:UltiSnipsJumpForwardTrigger="<c-j>"
+" let g:UltiSnipsJumpBackwardTrigger="<c-J>"
+" let g:UltiSnipsSnippetsDir        = $HOME.'/.vim/UltiSnips/'
+" let g:UltiSnipsSnippetDirectories=["UltiSnips"]
+let g:UltiSnipsExpandTrigger="<c-j>"
+let g:UltiSnipsJumpForwardTrigger="<c-j>"
+let g:UltiSnipsJumpBackwardTrigger="<c-k>"
+let g:UltiSnipsListSnippets="<c-h>"
+imap <C-F> <C-G>g
 
 "Custom key-maps"
 map <F2> :YcmCompleter FixIt<CR>
@@ -327,9 +357,16 @@ map <leader>7 :b 7<CR>
 map <leader>8 :b 8<CR>
 map <leader>9 :b 9<CR>
 
+nnoremap <leader>u :UndotreeToggle<CR>
+
+" Formatting
 autocmd BufWritePre *.h,*.cc,*.cpp,*.cu,*.ino,*.vert,*.frag map <leader>f :ClangFormat<CR>
-autocmd BufNewFile,BufRead *.js map <leader>f :PrettierAsync<CR>
+autocmd BufNewFile,BufRead *.js,*.ts map <leader>f :PrettierAsync<CR>
 autocmd BufNewFile,BufRead *.py map <leader>f :Black<CR>
+
+let g:prettier#autoformat = 1
+let g:prettier#config#tab_width = 4
+let g:prettier#config#semi = 'false'
 
 " Make Y yank till end of line
 nnoremap Y y$
@@ -358,7 +395,7 @@ au BufRead,BufNewFile *.md,*.txt,*.tex set spell spelllang=en_us
 autocmd FileType markdown set spell spelllang=en_us
 autocmd FileType gitcommit set spell spelllang=en_us
 
-hi clear SpellBad
+" hi clear SpellBad
 hi SpellBad cterm=underline
 " Set style for gVim
 hi SpellBad gui=undercurl
@@ -437,3 +474,5 @@ nnoremap <leader>ff <cmd>Telescope find_files<cr>
 nnoremap <leader>fg <cmd>Telescope live_grep<cr>
 nnoremap <leader>fb <cmd>Telescope buffers<cr>
 nnoremap <leader>fh <cmd>Telescope help_tags<cr>
+
+au BufReadPost,BufNewFile * syntax spell notoplevel
