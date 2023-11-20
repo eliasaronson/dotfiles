@@ -21,29 +21,27 @@ call plug#begin('~/.vim/plugged')
 
 Plug 'Valloric/YouCompleteMe'
 
-Plug 'SirVer/ultisnips'
+" Plug 'SirVer/ultisnips'
 
-Plug 'honza/vim-snippets'
+" Plug 'honza/vim-snippets'
 
-Plug 'Raimondi/delimitMate'
+Plug 'LucHermitte/lh-vim-lib'
 
-" Plug 'LucHermitte/lh-vim-lib'
+Plug 'LucHermitte/lh-style'
 
-" Plug 'LucHermitte/lh-style'
+Plug 'LucHermitte/lh-tags'
 
-" Plug 'LucHermitte/lh-tags'
+Plug 'LucHermitte/lh-dev'
 
-" Plug 'LucHermitte/lh-dev'
-
-" Plug 'LucHermitte/lh-brackets'
+Plug 'LucHermitte/lh-brackets'
 
 " Plug 'LucHermitte/searchInRuntime'
 
-" Plug 'LucHermitte/mu-template'
+Plug 'LucHermitte/mu-template'
 
 " Plug 'LucHermitte/alternate-lite'
 
-" Plug 'LucHermitte/lh-cpp'
+Plug 'LucHermitte/lh-cpp'
 
 Plug 'sjl/badwolf'
 
@@ -91,6 +89,8 @@ Plug 'prettier/vim-prettier', {
             \ 'do': 'yarn install --frozen-lockfile --production',
             \ 'for': ['javascript', 'typescript', 'css', 'less', 'scss', 'json', 'graphql', 'markdown', 'vue', 'svelte', 'yaml', 'html'] }
 
+Plug 'tpope/vim-unimpaired'
+
 if has('nvim')
     Plug 'rktjmp/lush.nvim'
     Plug 'file://'.expand('~/.config/nvim/badwolf2')
@@ -108,13 +108,13 @@ if has('nvim')
     Plug 'neovim/nvim-lspconfig'
 
     " Autocompletion
-    Plug 'williamboman/mason.nvim'
-    Plug 'williamboman/mason-lspconfig.nvim'
+    " Plug 'williamboman/mason.nvim'
+    " Plug 'williamboman/mason-lspconfig.nvim'
     " Plug 'hrsh7th/nvim-cmp'
     " Plug 'hrsh7th/cmp-nvim-lsp'
     " Plug 'L3MON4D3/LuaSnip'
 
-    Plug 'VonHeikemen/lsp-zero.nvim', {'branch': 'v3.x'}
+    " Plug 'VonHeikemen/lsp-zero.nvim', {'branch': 'v3.x'}
 
     Plug 'kylechui/nvim-surround'
 
@@ -359,14 +359,40 @@ map <leader>9 :b 9<CR>
 
 nnoremap <leader>u :UndotreeToggle<CR>
 
+nnoremap <C-p> "0p
+
+packadd! matchit
+let b:match_words = '<<<<<<<:=======:>>>>>>>'
+
 " Formatting
 autocmd BufWritePre *.h,*.cc,*.cpp,*.cu,*.ino,*.vert,*.frag map <leader>f :ClangFormat<CR>
 autocmd BufNewFile,BufRead *.js,*.ts map <leader>f :PrettierAsync<CR>
 autocmd BufNewFile,BufRead *.py map <leader>f :Black<CR>
 
+" Non-default configs
 let g:prettier#autoformat = 1
 let g:prettier#config#tab_width = 4
 let g:prettier#config#semi = 'false'
+" let g:prettier#autoformat_require_pragma = 0
+
+
+" Default configs
+" Max line length that prettier will wrap on: a number or 'auto' (use textwidth).
+let g:prettier#config#print_width = '80'
+" use tabs instead of spaces: true, false, or auto (use the expandtab setting). " default: 'auto'
+let g:prettier#config#use_tabs = 'false'
+" flow|babylon|typescript|css|less|scss|json|graphql|markdown or empty string " (let prettier choose). " default: ''
+let g:prettier#config#parser = ''
+" cli-override|file-override|prefer-file " default: 'file-override'
+let g:prettier#config#config_precedence = 'file-override' "cli-override
+" always|never|preserve " default: 'preserve'
+let g:prettier#config#prose_wrap = 'preserve'
+" css|strict|ignore " default: 'css'
+let g:prettier#config#html_whitespace_sensitivity = 'css'
+" false|true " default: 'false'
+let g:prettier#config#require_pragma = 'false'
+" Define the flavor of line endings " lf|crlf|cr|all " defaut: 'lf'
+let g:prettier#config#end_of_line = get(g:, 'prettier#config#end_of_line', 'lf')
 
 " Make Y yank till end of line
 nnoremap Y y$
@@ -440,10 +466,6 @@ function! Formatonsave_clang()
 endfunction
 autocmd BufWritePre *.h,*.cc,*.cpp,*.c,*.cu,*.ino,*.vert,*.frag call Formatonsave_clang()
 
-" autocmd BufWritePre *.js :PrettierAsync<CR>
-let g:prettier#autoformat = 1
-let g:prettier#autoformat_require_pragma = 0
-
 " Added gdb
 packadd termdebug
 
@@ -474,5 +496,6 @@ nnoremap <leader>ff <cmd>Telescope find_files<cr>
 nnoremap <leader>fg <cmd>Telescope live_grep<cr>
 nnoremap <leader>fb <cmd>Telescope buffers<cr>
 nnoremap <leader>fh <cmd>Telescope help_tags<cr>
+nnoremap <leader>fr <cmd>Telescope resume<cr>
 
 au BufReadPost,BufNewFile * syntax spell notoplevel
