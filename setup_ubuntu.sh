@@ -46,3 +46,6 @@ cd ~/Downloads
 wget https://download.nomachine.com/download/8.10/Linux/nomachine_8.10.1_1_amd64.deb
 sudo dpkg -i nomachine_8.10.1_1_amd64.deb
 cd
+
+# color lock
+scripts/install_i3_color_lock.sh
