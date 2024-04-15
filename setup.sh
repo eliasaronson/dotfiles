@@ -16,11 +16,22 @@ git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:
 # Vim
 curl -fLo ~/.vim/autoload/plug.vim --create-dirs \
     https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+vim +'PlugInstall --sync' +qa
+cd ~/.vim/plugged/YouCompleteMe
+python install.py --all
+cd
+
+# Keyboard
+cd Documents && git clone git@github.com:eliasaronson/US-keyboard-with-Swedish-letters.git && cd US-keyboard-with-Swedish-letters
+./install.sh
+setxkbmap -layout se -variant US_swe
+cd
 
 # Generate ssh-key
 sh-keygen -t ed25519 -C "elias.aronson@gmail.com"
 ssh-add ~/.ssh/id_ed25519
 cat .ssh/id_ed25519.pub
+scripts/gitalias.sh
 
 # chezmoi setup
 chezmoi init git@github.com:eliasaronson/dotfiles.git
