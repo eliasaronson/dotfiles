@@ -1,9 +1,17 @@
 CompileFlags:                     # Tweak the parse settings
   # treat all files as C++, enable more warnings
-  # -std=c++2b
-  Add: [-xc++, -xcuda, -std=c++17, -Wall, -Wno-missing-prototypes, -I/deps/spdlog/include, -ferror-limit=0]
-  Remove: [-member_function_call_bad_type*, -generate-code*, -expt-relaxed-constexpr*, drv_unsupported_opt]
+  Add: [-Wall, -Wno-missing-prototypes, -I/deps/spdlog/include, -ferror-limit=0]
+  Remove: [-member_function_call_bad_type*, -generate-code*, -expt-relaxed-constexpr*, drv_unsupported_opt, -forward-unknown-to-host-compiler, --diag-suppress, -Xcompiler*, -rdc*, --generate-code*]
   Compiler: g++               # Change argv[0] of compile flags to `clang++`
+
+---
+
+If:                               # Apply this config conditionally
+  PathMatch: .*\.cu
+CompileFlags:
+  Add: - "--cuda-gpu-arch=sm_86"
+
+---
 
 Diagnostics:
   # Tweak Clang-Tidy checks.
@@ -12,20 +20,3 @@ Diagnostics:
     Remove: [modernize-use-trailing-return-type, readability-uppercase-literal-suffix, readability-isolate-declaration]
     CheckOptions:
       readability-identifier-naming.VariableCase: lower_case
-
-  # Suppress: [undeclared_var_use_suggest]
-
-# If:
-  # PathMatch: /usr/include/.*
-  # Suppress: "*"
-        
-#If:
-#  PathMatch: .*/spdlog/.*
-#    Diagnostics:
-#      Suppress: "*"
-#
-#If:
-#  PathMatch: .*/json_struct/.*
-#    Diagnostics:
-#      Suppress: "*"
-
