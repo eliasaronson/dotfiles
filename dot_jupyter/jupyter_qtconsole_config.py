@@ -1,7 +1,10 @@
 # Configuration file for jupyter-qtconsole.
 
 c = get_config()  #noqa
-c.JupyterWidget.syntax_style = 'solarized-dark'
+# c.JupyterWidget.syntax_style = 'solarized-dark'
+c.JupyterWidget.syntax_style = 'stata-dark'
+
+c.InteractiveShellApp.matplotlib = 'qt'
 
 #------------------------------------------------------------------------------
 # ConnectionFileMixin(LoggingConfigurable) configuration

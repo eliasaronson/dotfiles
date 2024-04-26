@@ -25,5 +25,9 @@ config.window_padding = {
   bottom = 0,
 }
 
+config.check_for_updates = false
+
+config.enable_scroll_bar = true
+
 -- and finally, return the configuration to wezterm
 return config

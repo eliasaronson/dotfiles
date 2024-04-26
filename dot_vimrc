@@ -118,7 +118,11 @@ if has('nvim')
 
     Plug 'kylechui/nvim-surround'
 
-    " Plug 'neomake/neomake'
+    Plug 'neomake/neomake'
+
+    " Plug 'mfussenegger/nvim-dap'
+
+    " Plug 'rcarriga/nvim-dap-ui'
 else
     "Plug 'octol/vim-cpp-enhanced-highlight'
     Plug 'bfrg/vim-cpp-modern'
@@ -279,12 +283,11 @@ if !has('nvim')
     let g:cpp_attributes_highlight = 1
     let g:cpp_member_highlight = 1
     let g:cpp_simple_highlight = 1
-
 else
     " lua require'lspconfig'.pyright.setup{}
     source ~/.config/nvim/lua/init.lua
-    colorscheme badwolf2
-    
+    " colorscheme badwolf2
+
     setlocal cursorline
     setlocal cursorcolumn
 
@@ -307,8 +310,8 @@ let g:ycm_autoclose_preview_window_after_insertion = 1
 " YCM set extra config file
 let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
 " let g:ycm_use_clangd=1
-" let g:ycm_clangd_binary_path = '/usr/bin/clangd'
-let g:ycm_clangd_args = ['--limit-references=0', '-limit-results=0', '--header-insertion=never', '--log=verbose', '--query-driver=/usr/bin/g++', '--enable-config', '--clang-tidy']
+let g:ycm_clangd_binary_path = '/usr/bin/clangd-17'
+let g:ycm_clangd_args = ['--limit-references=0', '-limit-results=0', '--header-insertion=never', '--log=verbose', '--query-driver=/usr/bin/g++', '--query-driver=/usr/bin/gcc', '--query-driver=/usr/local/cuda/bin/nvcc', '--enable-config', '--clang-tidy']
 let g:ycm_max_diagnostics_to_display = 0
 let g:ycm_complete_in_comments = 1 
 let g:ycm_seed_identifiers_with_syntax = 1 
@@ -333,6 +336,7 @@ map <leader>G :YcmCompleter GoToDefinition<CR>
 map <leader>t :YcmCompleter GetType<CR>
 map <leader>h :YcmCompleter GoToAlternateFile<CR>
 map <leader>r :YcmCompleter RefactorRename 
+map <leader>R :YcmCompleter GoToReferences<CR>
 
 map <F6> :JupyterRunFile<CR>
 map <F5> :JupyterSendCell<CR>
@@ -461,8 +465,8 @@ let g:clang_format#detect_style_file = 1
 " let g:clang_format#auto_formatexpr = ["c", "cpp", "objc", "java", "javascript", "typescript", "proto", "arduino", "cc", "h", "cu", "vert", "frag"]
 
 function! Formatonsave_clang()
-  let l:formatdiff = 1
-  py3f /usr/share/clang/clang-format-14/clang-format.py
+    let l:formatdiff = 1
+    py3f /usr/share/clang/clang-format-14/clang-format.py
 endfunction
 autocmd BufWritePre *.h,*.cc,*.cpp,*.c,*.cu,*.ino,*.vert,*.frag call Formatonsave_clang()
 
