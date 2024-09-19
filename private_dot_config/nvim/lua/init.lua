@@ -4,55 +4,96 @@ require'lspconfig'.julials.setup{}
 require'lspconfig'.lua_ls.setup({})
 require'lspconfig'.cmake.setup{}
 
--- local lsp_zero = require('lsp-zero')
+require("neodev").setup({
+    library = { plugins = { "nvim-dap-ui" }, types = true },
+})
 
- -- lsp_zero.on_attach(function(client, bufnr)
- --     local opts = {buffer = bufnr, remap = false}
- -- 
- --     vim.keymap.set("n", "gd", function() vim.lsp.buf.definition() end, opts)
- --     vim.keymap.set("n", "K", function() vim.lsp.buf.hover() end, opts)
- --     vim.keymap.set("n", "<leader>vws", function() vim.lsp.buf.workspace_symbol() end, opts)
- --     vim.keymap.set("n", "<leader>vd", function() vim.diagnostic.open_float() end, opts)
- --     vim.keymap.set("n", "[d", function() vim.diagnostic.goto_next() end, opts)
- --     vim.keymap.set("n", "]d", function() vim.diagnostic.goto_prev() end, opts)
- --     vim.keymap.set("n", "<leader>vca", function() vim.lsp.buf.code_action() end, opts)
- --     vim.keymap.set("n", "<leader>vrr", function() vim.lsp.buf.references() end, opts)
- --     vim.keymap.set("n", "<leader>vrn", function() vim.lsp.buf.rename() end, opts)
- --     vim.keymap.set("i", "<C-h>", function() vim.lsp.buf.signature_help() end, opts)
- -- end)
- -- 
- -- require('mason').setup({})
- -- require('mason-lspconfig').setup({
- --     ensure_installed = {'lua_ls', 'julials', 'pyright', 'tsserver', 'rust_analyzer'},
- --     handlers = {
- --         lsp_zero.default_setup,
- --         lua_ls = function()
- --             local lua_opts = lsp_zero.nvim_lua_ls()
- --             require('lspconfig').lua_ls.setup(lua_opts)
- --         end,
- --     }
- -- })
+require("dapui").setup()
+require("nvim-dap-virtual-text").setup()
 
--- local cmp = require('cmp')
--- local cmp_select = {behavior = cmp.SelectBehavior.Select}
+local dap = require('dap')
+dap.adapters.cppdbg = {
+    id = 'cppdbg',
+    type = 'executable',
+    command = '/home/elias/Downloads/ms-vscode.cpptools-1.22.2@linux-x64/extension/debugAdapters/bin/OpenDebugAD7',
+}
 
- -- cmp.setup({
- --     sources = {
- --         {name = 'path'},
- --         {name = 'nvim_lsp'},
- --         {name = 'nvim_lua'},
- --     },
- --     formatting = lsp_zero.cmp_format(),
- --     mapping = cmp.mapping.preset.insert({
- --         ['<CR>'] = cmp.mapping.confirm({select = true}),
- --         ['<Tab>'] = cmp.cmp_action.luasnip_supertab(),
- --         ['<S-Tab>'] = cmp.cmp_action.luasnip_shift_supertab(),
- --         ['<C-p>'] = cmp.mapping.select_prev_item(cmp_select),
- --         ['<C-n>'] = cmp.mapping.select_next_item(cmp_select),
- --         ['<C-y>'] = cmp.mapping.confirm({ select = true }),
- --         ['<C-Space>'] = cmp.mapping.complete(),
- --     }),
- -- })
+dap.configurations.cpp = {
+    {
+        name = "Run intui",
+        type = "cppdbg",
+        request = "launch",
+        program = "${workspaceFolder}/build/intui",
+        args = {"-cl", "build/${fileBasenameNoExtension}.js"},
+        stopAtEntry = false,
+        cwd = "${workspaceFolder}/experiments/nursery",
+        externalConsole = false,
+        console = 'integratedTerminal',
+        MIMode = "gdb",
+        setupCommands = {
+            {
+                description = "Enable pretty-printing for gdb",
+                text = "-enable-pretty-printing",
+                ignoreFailures = true
+            },
+            {
+                description = "Set Disassembly Flavor to Intel",
+                text = "-gdb-set disassembly-flavor intel",
+                ignoreFailures = true
+            }
+        },
+        preLaunchTask = "Build dependencies and self"
+    },
+    {
+        name = "Launch file",
+        type = "cppdbg",
+        request = "launch",
+        program = function()
+            return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+        end,
+        cwd = '${workspaceFolder}',
+        stopAtEntry = false,
+        setupCommands = {  
+            { 
+                text = '-enable-pretty-printing',
+                description =  'enable pretty printing',
+                ignoreFailures = false 
+            },
+        },
+    },
+    {
+        name = 'Attach to gdbserver :1234',
+        type = 'cppdbg',
+        request = 'launch',
+        MIMode = 'gdb',
+        miDebuggerServerAddress = 'localhost:1234',
+        miDebuggerPath = '/usr/bin/gdb',
+        cwd = '${workspaceFolder}',
+        program = function()
+            return vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file')
+        end,
+    },
+}
+
+dap.configurations.c = dap.configurations.cpp
+dap.configurations.rust = dap.configurations.cpp
+dap.configurations.typescript = dap.configurations.cpp
+dap.configurations.cuda = dap.configurations.cpp
+
+local dapui = require("dapui")
+dap.listeners.before.attach.dapui_config = function()
+    dapui.open()
+end
+dap.listeners.before.launch.dapui_config = function()
+    dapui.open()
+end
+dap.listeners.before.event_terminated.dapui_config = function()
+    dapui.close()
+end
+dap.listeners.before.event_exited.dapui_config = function()
+    dapui.close()
+end
+
 
 require'nvim-treesitter.configs'.setup {
     -- A list of parser names, or "all" (the five listed parsers should always be installed)

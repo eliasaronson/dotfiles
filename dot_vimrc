@@ -120,9 +120,12 @@ if has('nvim')
 
     Plug 'neomake/neomake'
 
-    " Plug 'mfussenegger/nvim-dap'
-
-    " Plug 'rcarriga/nvim-dap-ui'
+    Plug 'mfussenegger/nvim-dap'
+    Plug 'nvim-neotest/nvim-nio'
+    Plug 'rcarriga/nvim-dap-ui'
+    Plug 'theHamsta/nvim-dap-virtual-text'
+    Plug 'folke/lazydev.nvim'
+    Plug 'folke/neodev.nvim'
 else
     "Plug 'octol/vim-cpp-enhanced-highlight'
     Plug 'bfrg/vim-cpp-modern'
@@ -299,6 +302,18 @@ else
     nnoremap <buffer> gr <cmd>lua vim.lsp.buf.references()<cr>
     nnoremap <buffer> <C-k> <cmd>lua vim.lsp.buf.signature_help()<cr>
     nnoremap <buffer> <F3> <cmd>lua vim.lsp.buf.rename()<cr>
+
+    nnoremap <silent> <Leader>dd <Cmd>lua require'dap'.continue()<CR>
+    nnoremap <silent> <Leader>ds <Cmd>lua require'dap'.step_over()<CR>
+    nnoremap <silent> <Leader>di <Cmd>lua require'dap'.step_into()<CR>
+    nnoremap <silent> <Leader>do <Cmd>lua require'dap'.step_out()<CR>
+    nnoremap <silent> <Leader>db <Cmd>lua require'dap'.toggle_breakpoint()<CR>
+    nnoremap <silent> <Leader>dB <Cmd>lua require'dap'.set_breakpoint(vim.fn.input('Breakpoint condition: '))<CR>
+    nnoremap <silent> <Leader>lp <Cmd>lua require'dap'.set_breakpoint(nil, nil, vim.fn.input('Log point message: '))<CR>
+    nnoremap <silent> <Leader>dr <Cmd>lua require'dap'.repl.open()<CR>
+    nnoremap <silent> <Leader>dl <Cmd>lua require'dap'.run_last()<CR>
+    nnoremap <silent> <Leader>dl <Cmd>lua require'dap'.run_last()<CR>
+    nnoremap <silent> <Leader>dq <Cmd>lua require'dap'.close()<CR> <BAR> lua require("dapui").close()<CR>
 endif
 
 " If fuzzy finder installed using git
@@ -310,8 +325,9 @@ let g:ycm_autoclose_preview_window_after_insertion = 1
 " YCM set extra config file
 let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
 " let g:ycm_use_clangd=1
-let g:ycm_clangd_binary_path = '/usr/bin/clangd-17'
-let g:ycm_clangd_args = ['--limit-references=0', '-limit-results=0', '--header-insertion=never', '--log=verbose', '--query-driver=/usr/bin/g++', '--query-driver=/usr/bin/gcc', '--query-driver=/usr/local/cuda/bin/nvcc', '--enable-config', '--clang-tidy']
+let g:ycm_clangd_binary_path = '/usr/bin/clangd'
+let g:ycm_clangd_args = ['--limit-references=0', '--limit-results=0', '--header-insertion=never', '--log=verbose', '--query-driver=/usr/bin/g++', '--query-driver=/usr/bin/gcc', '--query-driver=/usr/local/cuda/bin/nvcc', '--enable-config', '--clang-tidy']
+let g:ycm_clangd_uses_ycmd_caching = 0
 let g:ycm_max_diagnostics_to_display = 0
 let g:ycm_complete_in_comments = 1 
 let g:ycm_seed_identifiers_with_syntax = 1 

@@ -1,0 +1,22 @@
+CompileFlags:                     # Tweak the parse settings
+  # treat all files as C++, enable more warnings
+  Add: [-Wall, -Wno-missing-prototypes, -I/deps/spdlog/include, -ferror-limit=0]
+  Remove: [-member_function_call_bad_type*, -generate-code*, -expt-relaxed-constexpr*, drv_unsupported_opt, -forward-unknown-to-host-compiler, --diag-suppress, -Xcompiler*, -rdc*, --generate-code*]
+  Compiler: g++               # Change argv[0] of compile flags to `clang++`
+
+---
+
+If:                               # Apply this config conditionally
+  PathMatch: .*\.cu
+CompileFlags:
+  Add: --cuda-gpu-arch=sm_86
+
+---
+
+Diagnostics:
+  # Tweak Clang-Tidy checks.
+  ClangTidy:
+    Add: [performance*, modernize*, readability*, bugprone*, clang-analyzer*, concurrency*, cppcoreguidelines*]
+    Remove: [modernize-use-trailing-return-type, readability-uppercase-literal-suffix, readability-isolate-declaration, readability-magic-numbers]
+    CheckOptions:
+      readability-identifier-naming.VariableCase: lower_case
