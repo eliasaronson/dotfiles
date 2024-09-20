@@ -67,11 +67,7 @@ Plug 'jupyter-vim/jupyter-vim'
 
 Plug 'JuliaEditorSupport/julia-vim'
 
-" Plug 'zyedidia/julialint.vim'
-
 " Plug 'rhysd/vim-grammarous'
-
-Plug 'rhysd/vim-clang-format'
 
 Plug 'https://github.com/machakann/vim-swap.git'
 
@@ -81,13 +77,7 @@ Plug 'rickhowe/spotdiff.vim'
 
 Plug 'mbbill/undotree'
 
-Plug 'psf/black', { 'branch': 'stable' }
-
 Plug 'lambdalisue/suda.vim'
-
-Plug 'prettier/vim-prettier', {
-            \ 'do': 'yarn install --frozen-lockfile --production',
-            \ 'for': ['javascript', 'typescript', 'css', 'less', 'scss', 'json', 'graphql', 'markdown', 'vue', 'svelte', 'yaml', 'html'] }
 
 Plug 'tpope/vim-unimpaired'
 
@@ -126,9 +116,19 @@ if has('nvim')
     Plug 'theHamsta/nvim-dap-virtual-text'
     Plug 'folke/lazydev.nvim'
     Plug 'folke/neodev.nvim'
+
+    Plug 'stevearc/conform.nvim'
 else
     "Plug 'octol/vim-cpp-enhanced-highlight'
     Plug 'bfrg/vim-cpp-modern'
+
+    Plug 'psf/black', { 'branch': 'stable' }
+
+    Plug 'rhysd/vim-clang-format'
+
+    Plug 'prettier/vim-prettier', {
+                \ 'do': 'yarn install --frozen-lockfile --production',
+                \ 'for': ['javascript', 'typescript', 'css', 'less', 'scss', 'json', 'graphql', 'markdown', 'vue', 'svelte', 'yaml', 'html'] }
 endif
 
 " Plug 'mg979/vim-visual-multi', {'branch': 'master'}
@@ -286,6 +286,11 @@ if !has('nvim')
     let g:cpp_attributes_highlight = 1
     let g:cpp_member_highlight = 1
     let g:cpp_simple_highlight = 1
+
+    " Formatting
+    autocmd BufWritePre *.h,*.cc,*.cpp,*.cu,*.ino,*.vert,*.frag map <leader>f :ClangFormat<CR>
+    autocmd BufNewFile,BufRead *.js,*.ts map <leader>f :PrettierAsync<CR>
+    autocmd BufNewFile,BufRead *.py map <leader>f :Black<CR>
 else
     " lua require'lspconfig'.pyright.setup{}
     source ~/.config/nvim/lua/init.lua
@@ -313,7 +318,7 @@ else
     nnoremap <silent> <Leader>dr <Cmd>lua require'dap'.repl.open()<CR>
     nnoremap <silent> <Leader>dl <Cmd>lua require'dap'.run_last()<CR>
     nnoremap <silent> <Leader>dl <Cmd>lua require'dap'.run_last()<CR>
-    nnoremap <silent> <Leader>dq <Cmd>lua require'dap'.close()<CR> <BAR> lua require("dapui").close()<CR>
+    nnoremap <silent> <Leader>dq <Cmd>lua require'dap'.close(); require("dapui").close()<CR>
 endif
 
 " If fuzzy finder installed using git
@@ -383,11 +388,6 @@ nnoremap <C-p> "0p
 
 packadd! matchit
 let b:match_words = '<<<<<<<:=======:>>>>>>>'
-
-" Formatting
-autocmd BufWritePre *.h,*.cc,*.cpp,*.cu,*.ino,*.vert,*.frag map <leader>f :ClangFormat<CR>
-autocmd BufNewFile,BufRead *.js,*.ts map <leader>f :PrettierAsync<CR>
-autocmd BufNewFile,BufRead *.py map <leader>f :Black<CR>
 
 " Non-default configs
 let g:prettier#autoformat = 1

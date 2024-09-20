@@ -9,14 +9,14 @@ CompileFlags:                     # Tweak the parse settings
 If:                               # Apply this config conditionally
   PathMatch: .*\.cu
 CompileFlags:
-  Add: - "--cuda-gpu-arch=sm_86"
+  Add: --cuda-gpu-arch=sm_86
 
 ---
 
 Diagnostics:
   # Tweak Clang-Tidy checks.
   ClangTidy:
-    Add: [performance*, modernize*, readability*]
-    Remove: [modernize-use-trailing-return-type, readability-uppercase-literal-suffix, readability-isolate-declaration]
+    Add: [performance*, modernize*, readability*, bugprone*, clang-analyzer*, concurrency*, cppcoreguidelines*]
+    Remove: [modernize-use-trailing-return-type, readability-uppercase-literal-suffix, readability-isolate-declaration, readability-magic-numbers]
     CheckOptions:
       readability-identifier-naming.VariableCase: lower_case
