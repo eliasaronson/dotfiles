@@ -472,7 +472,7 @@ autocmd FileType cmds setlocal commentstring=#\ %s
 " Folding settings
 filetype plugin indent on " required
 autocmd Filetype * AnyFoldActivate               " activate for all filetypes
-set foldlevel=2  " close all folds
+set foldlevel=99
 
 " Autoformat
 let g:clang_format#detect_style_file = 1
@@ -485,9 +485,6 @@ function! Formatonsave_clang()
     py3f /usr/share/clang/clang-format-14/clang-format.py
 endfunction
 autocmd BufWritePre *.h,*.cc,*.cpp,*.c,*.cu,*.ino,*.vert,*.frag call Formatonsave_clang()
-
-" Added gdb
-packadd termdebug
 
 " vimdiff different branches
 function! Diff(spec)
