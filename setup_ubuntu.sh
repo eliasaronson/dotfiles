@@ -31,7 +31,7 @@ chmod +x scripts/gitalias.sh
 scripts/gitalias.sh
 
 # Vim
-pip install neovim --break-system-packages
+pip install --user --upgrade --break-system-packages pynvim
 sudo npm install -g neovim
 
 cargo install stylua
