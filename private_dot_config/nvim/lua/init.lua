@@ -134,6 +134,7 @@ require("conform").setup({
 		sh = { "shfmt" },
 		bash = { "shfmt" },
 		zsh = { "shfmt" },
+		xml = { "xmlformat" },
 	},
 	format_on_save = {
 		-- These options will be passed to conform.format()
@@ -141,5 +142,106 @@ require("conform").setup({
 		lsp_format = "fallback",
 	},
 })
+require("conform").formatters.xmlformat = {
+	prepend_args = { "--blanks", "--selfclose" },
+	-- The base args are { "-filename", "$FILENAME" } so the final args will be
+	-- { "-i", "2", "-filename", "$FILENAME" }
+}
 
 vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
+
+-- LuaSnip
+require("luasnip.loaders.from_vscode").lazy_load()
+
+local ls = require("luasnip")
+ls.config.set_config({
+	history = true,
+	updateevents = "TextChanged,TextChangedI",
+	enable_autosnippets = true,
+})
+
+vim.keymap.set({ "i" }, "<C-K>", function()
+	ls.expand()
+end, { silent = true })
+vim.keymap.set({ "i", "s" }, "<C-L>", function()
+	ls.jump(1)
+end, { silent = true })
+vim.keymap.set({ "i", "s" }, "<C-J>", function()
+	ls.jump(-1)
+end, { silent = true })
+
+vim.keymap.set({ "i", "s" }, "<C-E>", function()
+	if ls.choice_active() then
+		ls.change_choice(1)
+	end
+end, { silent = true })
+
+-- Configure nvim-cmp
+local cmp = require("cmp")
+local luasnip = require("luasnip")
+
+cmp.setup({
+	snippet = {
+		expand = function(args)
+			luasnip.lsp_expand(args.body)
+		end,
+	},
+
+	-- Configure completion sources with priority
+	sources = cmp.config.sources({
+		{ name = "ycm" }, -- YCM completions with highest priority
+		{ name = "luasnip" }, -- Snippets next
+		{ name = "buffer" }, -- Buffer words
+		{ name = "path" }, -- File paths
+	}),
+
+	-- Key mappings
+	mapping = {
+		["<C-n>"] = cmp.mapping.select_next_item(),
+		["<C-p>"] = cmp.mapping.select_prev_item(),
+		["<C-d>"] = cmp.mapping.scroll_docs(-4),
+		["<C-f>"] = cmp.mapping.scroll_docs(4),
+		["<C-Space>"] = cmp.mapping.complete(),
+		["<C-e>"] = cmp.mapping.close(),
+		["<CR>"] = cmp.mapping.confirm({
+			behavior = cmp.ConfirmBehavior.Replace,
+			select = true,
+		}),
+		["<Tab>"] = function(fallback)
+			if cmp.visible() then
+				cmp.select_next_item()
+			elseif luasnip.expand_or_jumpable() then
+				luasnip.expand_or_jump()
+			else
+				fallback()
+			end
+		end,
+		["<S-Tab>"] = function(fallback)
+			if cmp.visible() then
+				cmp.select_prev_item()
+			elseif luasnip.jumpable(-1) then
+				luasnip.jump(-1)
+			else
+				fallback()
+			end
+		end,
+	},
+
+	-- Appearance
+	formatting = {
+		format = function(entry, vim_item)
+			vim_item.menu = ({
+				ycm = "[YCM]",
+				luasnip = "[Snippet]",
+				buffer = "[Buffer]",
+				path = "[Path]",
+			})[entry.source.name]
+			return vim_item
+		end,
+	},
+})
+
+-- YCM configuration
+vim.g.ycm_key_list_select_completion = { "<C-n>" }
+vim.g.ycm_key_list_previous_completion = { "<C-p>" }
+vim.g.ycm_auto_trigger = 1

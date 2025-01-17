@@ -25,24 +25,6 @@ Plug 'Valloric/YouCompleteMe'
 
 " Plug 'honza/vim-snippets'
 
-Plug 'LucHermitte/lh-vim-lib'
-
-Plug 'LucHermitte/lh-style'
-
-Plug 'LucHermitte/lh-tags'
-
-Plug 'LucHermitte/lh-dev'
-
-Plug 'LucHermitte/lh-brackets'
-
-" Plug 'LucHermitte/searchInRuntime'
-
-Plug 'LucHermitte/mu-template'
-
-" Plug 'LucHermitte/alternate-lite'
-
-Plug 'LucHermitte/lh-cpp'
-
 Plug 'sjl/badwolf'
 
 Plug 'itchyny/lightline.vim'
@@ -73,17 +55,18 @@ Plug 'https://github.com/machakann/vim-swap.git'
 
 Plug 'pangloss/vim-javascript'
 
-Plug 'rickhowe/spotdiff.vim'
+" Plug 'rickhowe/spotdiff.vim'
 
 Plug 'mbbill/undotree'
 
 Plug 'lambdalisue/suda.vim'
 
-Plug 'tpope/vim-unimpaired'
+" Plug 'tpope/vim-unimpaired'
 
 if has('nvim')
     Plug 'rktjmp/lush.nvim'
-    Plug 'file://'.expand('~/.config/nvim/badwolf2')
+    " Plug 'file://'.expand('~/.config/nvim/badwolf2')
+    " Plug 'file:'.expand('~/.vim/plugged/badwolf2')
 
     Plug 'nvim-telescope/telescope.nvim'
 
@@ -100,7 +83,6 @@ if has('nvim')
     " Autocompletion
     " Plug 'williamboman/mason.nvim'
     " Plug 'williamboman/mason-lspconfig.nvim'
-    " Plug 'hrsh7th/nvim-cmp'
     " Plug 'hrsh7th/cmp-nvim-lsp'
     " Plug 'L3MON4D3/LuaSnip'
 
@@ -118,6 +100,11 @@ if has('nvim')
     Plug 'folke/neodev.nvim'
 
     Plug 'stevearc/conform.nvim'
+
+    Plug 'L3MON4D3/LuaSnip', {'tag': 'v2.3.0', 'do': 'make install_jsregexp'}
+    Plug 'rafamadriz/friendly-snippets'
+    Plug 'hrsh7th/nvim-cmp'
+    Plug 'saadparwaiz1/cmp_luasnip'
 else
     "Plug 'octol/vim-cpp-enhanced-highlight'
     Plug 'bfrg/vim-cpp-modern'
@@ -129,6 +116,16 @@ else
     Plug 'prettier/vim-prettier', {
                 \ 'do': 'yarn install --frozen-lockfile --production',
                 \ 'for': ['javascript', 'typescript', 'css', 'less', 'scss', 'json', 'graphql', 'markdown', 'vue', 'svelte', 'yaml', 'html'] }
+
+    Plug 'LucHermitte/lh-vim-lib'
+    Plug 'LucHermitte/lh-style'
+    Plug 'LucHermitte/lh-tags'
+    Plug 'LucHermitte/lh-dev'
+    Plug 'LucHermitte/lh-brackets'
+    Plug 'LucHermitte/searchInRuntime'
+    Plug 'LucHermitte/mu-template'
+    Plug 'LucHermitte/alternate-lite'
+    Plug 'LucHermitte/lh-cpp'
 endif
 
 " Plug 'mg979/vim-visual-multi', {'branch': 'master'}
@@ -432,8 +429,8 @@ autocmd BufNewFile,BufRead *.vert   set syntax=cpp
 autocmd BufNewFile,BufRead *.frag   set syntax=cpp
 
 "Vim-TeX settings
-let g:tex_flavor = 'latex'
-let g:vimtex_view_method = 'zathura'
+" let g:tex_flavor = 'latex'
+" let g:vimtex_view_method = 'zathura'
 
 " Spell check
 set spell spelllang=en_us
