@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Install packages
-sudo pacman -S neovim zsh chezmoi ripgrep zathura nodejs xsel alacritty brightnessctl nitrogen xss-lock python-pip bluez bluez-utils clipmenu gdb
+sudo pacman -S neovim zsh chezmoi ripgrep zathura nodejs xsel alacritty brightnessctl nitrogen xss-lock python-pip bluez bluez-utils clipmenu gdb fzf
 
 yay -S asusctl google-chrome python-pynvim i3lock-color julia-bin caffeine
 

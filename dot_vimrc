@@ -31,8 +31,6 @@ Plug 'itchyny/lightline.vim'
 
 Plug 'tsuyoshicho/StatuslineUpdateTimer.vim'
 
-Plug 'tomtom/tcomment_vim'
-
 " Plug 'reedes/vim-colors-pencil'
 
 " Plug 'nathanaelkane/vim-indent-guides'
@@ -112,6 +110,9 @@ else
     Plug 'psf/black', { 'branch': 'stable' }
 
     Plug 'rhysd/vim-clang-format'
+
+    Plug 'tomtom/tcomment_vim'
+
 
     Plug 'prettier/vim-prettier', {
                 \ 'do': 'yarn install --frozen-lockfile --production',
