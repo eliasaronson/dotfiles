@@ -17,6 +17,27 @@ Diagnostics:
   # Tweak Clang-Tidy checks.
   ClangTidy:
     Add: [performance*, modernize*, readability*, bugprone*, clang-analyzer*, concurrency*, cppcoreguidelines*]
-    Remove: [modernize-use-trailing-return-type, readability-uppercase-literal-suffix, readability-isolate-declaration, readability-magic-numbers]
+    Remove: 
+      - modernize-avoid-c-arrays
+      - modernize-raw-string-literal
+      - modernize-use-trailing-return-type
+      - readability-uppercase-literal-suffix
+      - readability-isolate-declaration
+      - readability-magic-numbers
+      - cppcoreguidelines-avoid-magic-numbers
+      - cppcoreguidelines-pro-bounds-constant-array-index
+      - modernize-use-trailing-return-type
+      - readability-function-cognitive-complexity
+      - readability-math-missing-parentheses
+      - readability-identifier-naming
+      - readability-uppercase-literal-suffix
+      - readability-isolate-declaration
+      - readability-magic-numbers
+      # 0 means false, any set bit means true; embrace this
+      - readability-implicit-bool-conversion
+      # single character names are valid in small scopes
+      - readability-identifier-length
     CheckOptions:
       readability-identifier-naming.VariableCase: lower_case
+      readability-identifier-length.MinimumVariableNameLength: 1
+      readability-identifier-length.MinimumParameterNameLength: 1
