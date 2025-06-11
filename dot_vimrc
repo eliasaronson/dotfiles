@@ -6,7 +6,7 @@ call plug#begin('~/.vim/plugged')
 " The following are examples of different formats supported.
 " Keep Plugin commands between vundle#begin/end.
 " plugin on GitHub repo
-" Plug 'tpope/vim-fugitive'
+Plug 'tpope/vim-fugitive'
 " plugin from http://vim-scripts.org/vim/scripts.html
 " Plugin 'L9'
 " Git plugin not hosted on GitHub
@@ -428,6 +428,8 @@ au BufNewFile,BufRead *.py set tabstop=4
 autocmd FileType make set noexpandtab shiftwidth=8 softtabstop=0
 autocmd BufNewFile,BufRead *.vert   set syntax=cpp
 autocmd BufNewFile,BufRead *.frag   set syntax=cpp
+autocmd BufNewFile,BufRead *.cjs   set syntax=typescript
+autocmd BufNewFile,BufRead *.cjs   set filetype=typescript
 
 "Vim-TeX settings
 " let g:tex_flavor = 'latex'
