@@ -67,6 +67,7 @@ if has('nvim')
     " Plug 'file:'.expand('~/.vim/plugged/badwolf2')
 
     Plug 'nvim-telescope/telescope.nvim'
+    Plug 'nvim-telescope/telescope-media-files.nvim'
 
     Plug 'nvim-lua/plenary.nvim'
 

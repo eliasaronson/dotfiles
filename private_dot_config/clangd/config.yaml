@@ -7,9 +7,22 @@ CompileFlags:                     # Tweak the parse settings
 ---
 
 If:                               # Apply this config conditionally
-  PathMatch: .*\.cu
+  PathMatch: .*\.(cu|cuh)
 CompileFlags:
-  Add: --cuda-gpu-arch=sm_86
+  Add: [--cuda-gpu-arch=sm_86, -xcuda]
+  Remove:
+   # strip CUDA fatbin args
+   - "-Xfatbin*"
+   # strip CUDA arch flags
+   - "-gencode*"
+   - "--generate-code*"
+   # strip CUDA flags unknown to clang
+   - "-ccbin*"
+   - "--compiler-options*"
+   - "--expt-extended-lambda"
+   - "--expt-relaxed-constexpr"
+   - "-forward-unknown-to-host-compiler"
+   - "-Werror=cross-execution-space-call"
 
 ---
 
@@ -21,12 +34,14 @@ Diagnostics:
       - modernize-avoid-c-arrays
       - modernize-raw-string-literal
       - modernize-use-trailing-return-type
+      - modernize-use-trailing-return-type
+      - cppcoreguidelines-avoid-magic-numbers
+      - cppcoreguidelines-pro-bounds-constant-array-index
+      - cppcoreguidelines-pro-type-cstyle-cast
+      - cppcoreguidelines-pro-bounds-pointer-arithmetic
       - readability-uppercase-literal-suffix
       - readability-isolate-declaration
       - readability-magic-numbers
-      - cppcoreguidelines-avoid-magic-numbers
-      - cppcoreguidelines-pro-bounds-constant-array-index
-      - modernize-use-trailing-return-type
       - readability-function-cognitive-complexity
       - readability-math-missing-parentheses
       - readability-identifier-naming
@@ -37,6 +52,10 @@ Diagnostics:
       - readability-implicit-bool-conversion
       # single character names are valid in small scopes
       - readability-identifier-length
+      - bugprone-easily-swappable-parameters
+      - cppcoreguidelines-non-private-member-variables-in-classes
+      - cppcoreguidelines-pro-type-union-access
+
     CheckOptions:
       readability-identifier-naming.VariableCase: lower_case
       readability-identifier-length.MinimumVariableNameLength: 1
