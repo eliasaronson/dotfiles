@@ -3,122 +3,65 @@ set nocompatible
 set cpoptions-=C
 
 call plug#begin('~/.vim/plugged')
-" The following are examples of different formats supported.
-" Keep Plugin commands between vundle#begin/end.
-" plugin on GitHub repo
+
 Plug 'tpope/vim-fugitive'
-" plugin from http://vim-scripts.org/vim/scripts.html
-" Plugin 'L9'
-" Git plugin not hosted on GitHub
-" git repos on your local machine (i.e. when working on your own plugin)
-"Plugin 'file:///home/gmarik/path/to/plugin'
-" The sparkup vim script is in a subdirectory of this repo called vim.
-" Pass the path to set the runtimepath properly.
-" Plug 'rstacruz/sparkup', {'rtp': 'vim/'}
-" Install L9 and avoid a Naming conflict if you've already installed a
-" different version somewhere else.
-" Plugin 'ascenator/L9', {'name': 'newL9'}
-
-Plug 'Valloric/YouCompleteMe'
-
-" Plug 'SirVer/ultisnips'
-
-" Plug 'honza/vim-snippets'
-
 Plug 'sjl/badwolf'
-
 Plug 'itchyny/lightline.vim'
-
 Plug 'tsuyoshicho/StatuslineUpdateTimer.vim'
-
-" Plug 'reedes/vim-colors-pencil'
-
-" Plug 'nathanaelkane/vim-indent-guides'
-
 Plug 'pseewald/vim-anyfold'
-
-" Plug 'tomtom/stakeholders_vim'
-
 Plug 'vim-scripts/indentpython.vim'
-
 Plug 'jupyter-vim/jupyter-vim'
-
-" Plug 'lervag/vimtex'
-
 Plug 'JuliaEditorSupport/julia-vim'
-
-" Plug 'rhysd/vim-grammarous'
-
 Plug 'https://github.com/machakann/vim-swap.git'
-
 Plug 'pangloss/vim-javascript'
-
-" Plug 'rickhowe/spotdiff.vim'
-
 Plug 'mbbill/undotree'
-
 Plug 'lambdalisue/suda.vim'
 
-" Plug 'tpope/vim-unimpaired'
-
 if has('nvim')
+    " LSP and completion
+    Plug 'williamboman/mason.nvim'
+    Plug 'williamboman/mason-lspconfig.nvim'
+    Plug 'neovim/nvim-lspconfig'
+    
+    " Completion engine
+    Plug 'hrsh7th/nvim-cmp'
+    Plug 'hrsh7th/cmp-nvim-lsp'
+    Plug 'hrsh7th/cmp-buffer'
+    Plug 'hrsh7th/cmp-path'
+    Plug 'saadparwaiz1/cmp_luasnip'
+    
+    " Snippets
+    Plug 'L3MON4D3/LuaSnip', {'tag': 'v2.3.0', 'do': 'make install_jsregexp'}
+    Plug 'rafamadriz/friendly-snippets'
+    
+    " UI enhancements
+    Plug 'nvim-tree/nvim-web-devicons'
+    
     Plug 'rktjmp/lush.nvim'
-    " Plug 'file://'.expand('~/.config/nvim/badwolf2')
-    " Plug 'file:'.expand('~/.vim/plugged/badwolf2')
-
     Plug 'nvim-telescope/telescope.nvim'
     Plug 'nvim-telescope/telescope-media-files.nvim'
-
     Plug 'nvim-lua/plenary.nvim'
-
     Plug 'nvim-telescope/telescope-fzf-native.nvim', { 'do': 'cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build' }
-
     Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
-
-    Plug 'nvim-tree/nvim-web-devicons'
-
-    Plug 'neovim/nvim-lspconfig'
-
-    " Autocompletion
-    " Plug 'williamboman/mason.nvim'
-    " Plug 'williamboman/mason-lspconfig.nvim'
-    " Plug 'hrsh7th/cmp-nvim-lsp'
-    " Plug 'L3MON4D3/LuaSnip'
-
-    " Plug 'VonHeikemen/lsp-zero.nvim', {'branch': 'v3.x'}
-
     Plug 'kylechui/nvim-surround'
-
     Plug 'neomake/neomake'
-
     Plug 'mfussenegger/nvim-dap'
     Plug 'nvim-neotest/nvim-nio'
     Plug 'rcarriga/nvim-dap-ui'
     Plug 'theHamsta/nvim-dap-virtual-text'
     Plug 'folke/lazydev.nvim'
     Plug 'folke/neodev.nvim'
-
     Plug 'stevearc/conform.nvim'
-
-    Plug 'L3MON4D3/LuaSnip', {'tag': 'v2.3.0', 'do': 'make install_jsregexp'}
-    Plug 'rafamadriz/friendly-snippets'
-    Plug 'hrsh7th/nvim-cmp'
-    Plug 'saadparwaiz1/cmp_luasnip'
+    Plug 'b0o/schemastore.nvim'
 else
-    "Plug 'octol/vim-cpp-enhanced-highlight'
+    Plug 'Valloric/YouCompleteMe'
     Plug 'bfrg/vim-cpp-modern'
-
     Plug 'psf/black', { 'branch': 'stable' }
-
     Plug 'rhysd/vim-clang-format'
-
     Plug 'tomtom/tcomment_vim'
-
-
     Plug 'prettier/vim-prettier', {
                 \ 'do': 'yarn install --frozen-lockfile --production',
                 \ 'for': ['javascript', 'typescript', 'css', 'less', 'scss', 'json', 'graphql', 'markdown', 'vue', 'svelte', 'yaml', 'html'] }
-
     Plug 'LucHermitte/lh-vim-lib'
     Plug 'LucHermitte/lh-style'
     Plug 'LucHermitte/lh-tags'
@@ -130,23 +73,9 @@ else
     Plug 'LucHermitte/lh-cpp'
 endif
 
-" Plug 'mg979/vim-visual-multi', {'branch': 'master'}
-
-"Plugin 'scrooloose/syntastic'
-
 " Initialize plugin system
 call plug#end()
-" All of your Plugins must be added before the following line
-"
-" Brief help
-" :PluginList       - lists configured plugins
-" :PluginInstall    - installs plugins; append `!` to update or just :PluginUpdate
-" :PluginSearch foo - searches for foo; append `!` to refresh local cache
-" :PluginClean      - confirms removal of unused plugins; append `!` to auto-approve removal
-"
-" see :h vundle for more details or wiki for FAQ
-" Put your non-Plugin stuff after this line
-" 
+
 " Turn on syntax highlighting
 syntax on
 syntax enable
@@ -290,10 +219,30 @@ if !has('nvim')
     autocmd BufWritePre *.h,*.cc,*.cpp,*.cu,*.ino,*.vert,*.frag map <leader>f :ClangFormat<CR>
     autocmd BufNewFile,BufRead *.js,*.ts map <leader>f :PrettierAsync<CR>
     autocmd BufNewFile,BufRead *.py map <leader>f :Black<CR>
+
+    " YCM settings
+    "Closes YouCompleteMe window after completion
+    let g:ycm_autoclose_preview_window_after_insertion = 1
+    " YCM set extra config file
+    let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
+    " let g:ycm_use_clangd=1
+    let g:ycm_clangd_binary_path = '/usr/bin/clangd'
+    let g:ycm_clangd_args = ['--limit-references=0', '--limit-results=0', '--header-insertion=never', '--log=verbose', '--query-driver=/usr/bin/g++', '--query-driver=/usr/bin/gcc', '--query-driver=/usr/local/cuda/bin/nvcc', '--enable-config', '--clang-tidy']
+    let g:ycm_clangd_uses_ycmd_caching = 0
+    let g:ycm_max_diagnostics_to_display = 0
+    let g:ycm_complete_in_comments = 1 
+    let g:ycm_seed_identifiers_with_syntax = 1 
+    let g:ycm_collect_identifiers_from_comments_and_strings = 1
+
+    map <F2> :YcmCompleter FixIt<CR>
+    map <leader>g :YcmCompleter GoTo<CR>
+    map <leader>G :YcmCompleter GoToDefinition<CR>
+    map <leader>t :YcmCompleter GetType<CR>
+    map <leader>h :YcmCompleter GoToAlternateFile<CR>
+    map <leader>r :YcmCompleter RefactorRename 
+    map <leader>R :YcmCompleter GoToReferences<CR>
 else
-    " lua require'lspconfig'.pyright.setup{}
     source ~/.config/nvim/lua/init.lua
-    " colorscheme badwolf2
 
     setlocal cursorline
     setlocal cursorcolumn
@@ -323,41 +272,9 @@ endif
 " If fuzzy finder installed using git
 set rtp+=~/.fzf
 
-" YCM settings
-"Closes YouCompleteMe window after completion
-let g:ycm_autoclose_preview_window_after_insertion = 1
-" YCM set extra config file
-let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
-" let g:ycm_use_clangd=1
-let g:ycm_clangd_binary_path = '/usr/bin/clangd'
-let g:ycm_clangd_args = ['--limit-references=0', '--limit-results=0', '--header-insertion=never', '--log=verbose', '--query-driver=/usr/bin/g++', '--query-driver=/usr/bin/gcc', '--query-driver=/usr/local/cuda/bin/nvcc', '--enable-config', '--clang-tidy']
-let g:ycm_clangd_uses_ycmd_caching = 0
-let g:ycm_max_diagnostics_to_display = 0
-let g:ycm_complete_in_comments = 1 
-let g:ycm_seed_identifiers_with_syntax = 1 
-let g:ycm_collect_identifiers_from_comments_and_strings = 1
-
-" Snippet settings
-" let g:UltiSnipsExpandTrigger="<c-space>"
-" let g:UltiSnipsJumpForwardTrigger="<c-j>"
-" let g:UltiSnipsJumpBackwardTrigger="<c-J>"
-" let g:UltiSnipsSnippetsDir        = $HOME.'/.vim/UltiSnips/'
-" let g:UltiSnipsSnippetDirectories=["UltiSnips"]
-let g:UltiSnipsExpandTrigger="<c-j>"
-let g:UltiSnipsJumpForwardTrigger="<c-j>"
-let g:UltiSnipsJumpBackwardTrigger="<c-k>"
-let g:UltiSnipsListSnippets="<c-h>"
 imap <C-F> <C-G>g
 
 "Custom key-maps"
-map <F2> :YcmCompleter FixIt<CR>
-map <leader>g :YcmCompleter GoTo<CR>
-map <leader>G :YcmCompleter GoToDefinition<CR>
-map <leader>t :YcmCompleter GetType<CR>
-map <leader>h :YcmCompleter GoToAlternateFile<CR>
-map <leader>r :YcmCompleter RefactorRename 
-map <leader>R :YcmCompleter GoToReferences<CR>
-
 map <F6> :JupyterRunFile<CR>
 map <F5> :JupyterSendCell<CR>
 map <F8> :PythonSetBreak<CR>
@@ -388,36 +305,8 @@ nnoremap <C-p> "0p
 packadd! matchit
 let b:match_words = '<<<<<<<:=======:>>>>>>>'
 
-" Non-default configs
-let g:prettier#autoformat = 1
-let g:prettier#config#tab_width = 4
-let g:prettier#config#semi = 'false'
-" let g:prettier#autoformat_require_pragma = 0
-
-
-" Default configs
-" Max line length that prettier will wrap on: a number or 'auto' (use textwidth).
-let g:prettier#config#print_width = '80'
-" use tabs instead of spaces: true, false, or auto (use the expandtab setting). " default: 'auto'
-let g:prettier#config#use_tabs = 'false'
-" flow|babylon|typescript|css|less|scss|json|graphql|markdown or empty string " (let prettier choose). " default: ''
-let g:prettier#config#parser = ''
-" cli-override|file-override|prefer-file " default: 'file-override'
-let g:prettier#config#config_precedence = 'file-override' "cli-override
-" always|never|preserve " default: 'preserve'
-let g:prettier#config#prose_wrap = 'preserve'
-" css|strict|ignore " default: 'css'
-let g:prettier#config#html_whitespace_sensitivity = 'css'
-" false|true " default: 'false'
-let g:prettier#config#require_pragma = 'false'
-" Define the flavor of line endings " lf|crlf|cr|all " defaut: 'lf'
-let g:prettier#config#end_of_line = get(g:, 'prettier#config#end_of_line', 'lf')
-
 " Make Y yank till end of line
 nnoremap Y y$
-
-" Add '\n\r' in inser mode. I'm tired of writing it all the time.
-inoremap <C-B> \n\r
 
 "Timeout
 set timeoutlen=1000
@@ -427,84 +316,28 @@ au BufNewFile,BufRead *.py set encoding=utf-8
 au BufNewFile,BufRead *.py set tabstop=4
 
 autocmd FileType make set noexpandtab shiftwidth=8 softtabstop=0
-autocmd BufNewFile,BufRead *.vert   set syntax=cpp
-autocmd BufNewFile,BufRead *.frag   set syntax=cpp
 autocmd BufNewFile,BufRead *.cjs   set syntax=typescript
 autocmd BufNewFile,BufRead *.cjs   set filetype=typescript
-
-"Vim-TeX settings
-" let g:tex_flavor = 'latex'
-" let g:vimtex_view_method = 'zathura'
 
 " Spell check
 set spell spelllang=en_us
 au BufRead,BufNewFile *.md,*.txt,*.tex set spell spelllang=en_us
 autocmd FileType markdown set spell spelllang=en_us
 autocmd FileType gitcommit set spell spelllang=en_us
+syntax spell toplevel
 
 " hi clear SpellBad
 hi SpellBad cterm=underline
 " Set style for gVim
 hi SpellBad gui=undercurl
 
-let g:grammarous#hooks = {}
-function! g:grammarous#hooks.on_check(errs) abort
-    nmap <buffer><C-n> <Plug>(grammarous-move-to-next-error)
-    nmap <buffer><C-p> <Plug>(grammarous-move-to-previous-error)
-endfunction
-
-function! g:grammarous#hooks.on_reset(errs) abort
-    nunmap <buffer><C-n>
-    nunmap <buffer><C-p>
-endfunction
-
-let g:grammarous#default_comments_only_filetypes = {
-            \ '*' : 1, 'help' : 0, 'markdown' : 0, 'gitcommit' : 0,
-            \ }
-
 "No python line splits
 set formatoptions-=tc
-
-let g:latex_to_unicode_auto = 1
-
-au BufRead,BufNewFile *.cmds set filetype=cmds
-autocmd FileType cmds setlocal commentstring=#\ %s
 
 " Folding settings
 filetype plugin indent on " required
 autocmd Filetype * AnyFoldActivate               " activate for all filetypes
 set foldlevel=99
-
-" Autoformat
-let g:clang_format#detect_style_file = 1
-" let g:clang_format#auto_format = 1
-" let g:clang_format#auto_format_on_insert_leave = 1
-" let g:clang_format#auto_formatexpr = ["c", "cpp", "objc", "java", "javascript", "typescript", "proto", "arduino", "cc", "h", "cu", "vert", "frag"]
-
-function! Formatonsave_clang()
-    let l:formatdiff = 1
-    py3f /usr/share/clang/clang-format-14/clang-format.py
-endfunction
-autocmd BufWritePre *.h,*.cc,*.cpp,*.c,*.cu,*.ino,*.vert,*.frag call Formatonsave_clang()
-
-" vimdiff different branches
-function! Diff(spec)
-    vertical new
-    setlocal bufhidden=wipe buftype=nofile nobuflisted noswapfile
-    let cmd = "++edit #"
-    if len(a:spec)
-        let cmd = "!git -C " . shellescape(fnamemodify(finddir('.git', '.;'), ':p:h:h')) . " show " . a:spec . ":#"
-    endif
-    execute "read " . cmd
-    silent 0d_
-    diffthis
-    wincmd p
-    diffthis
-endfunction
-command! -nargs=? Diff call Diff(<q-args>)
-
-" lh-brackets - delete tag instead of select.
-let g:marker_select_empty_marks=0
 
 " let @d = 'yy,h/private p==0/:: bcâï¿½Ã½ad2f:f{hC;âï¿½Ã½a'
 let @d = 'yy,h/privatep==0/::bcýad2f:f{hC;ýa'
@@ -515,5 +348,3 @@ nnoremap <leader>fg <cmd>Telescope live_grep<cr>
 nnoremap <leader>fb <cmd>Telescope buffers<cr>
 nnoremap <leader>fh <cmd>Telescope help_tags<cr>
 nnoremap <leader>fr <cmd>Telescope resume<cr>
-
-au BufReadPost,BufNewFile * syntax spell notoplevel

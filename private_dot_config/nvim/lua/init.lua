@@ -1,263 +1,573 @@
-require("lspconfig").pyright.setup({})
--- require'lspconfig'.clangd.setup{}
-require("lspconfig").julials.setup({})
-require("lspconfig").lua_ls.setup({})
-require("lspconfig").cmake.setup({})
-require 'lspconfig'.julials.setup {}
-
-require("neodev").setup({
-    library = { plugins = { "nvim-dap-ui" }, types = true },
+-- Mason for LSP server management
+require("mason").setup({
+	ui = {
+		icons = {
+			package_installed = "✓",
+			package_pending = "➜",
+			package_uninstalled = "✗",
+		},
+	},
 })
 
--- Debugger
+require("mason-lspconfig").setup({
+	ensure_installed = {
+		"clangd",
+		"pyright",
+		"lua_ls",
+		"julials",
+		"cmake",
+	},
+	automatic_installation = true,
+})
+
+-- Enhanced LSP capabilities
+local capabilities = require("cmp_nvim_lsp").default_capabilities()
+
+-- Add file watching capabilities for better performance
+capabilities.workspace = capabilities.workspace or {}
+capabilities.workspace.didChangeWatchedFiles = capabilities.workspace.didChangeWatchedFiles or {}
+capabilities.workspace.didChangeWatchedFiles.dynamicRegistration = true
+
+-- LSP server configurations
+local lspconfig = require("lspconfig")
+
+lspconfig.clangd.setup({
+	capabilities = capabilities,
+	cmd = {
+		"clangd",
+		"--background-index",
+		"--clang-tidy",
+		"--header-insertion=iwyu",
+		"--completion-style=detailed",
+		"--function-arg-placeholders",
+		"--fallback-style=llvm",
+		"--query-driver=/usr/bin/g++,/usr/bin/gcc,/usr/local/cuda/bin/nvcc",
+		"--enable-config",
+		"--limit-references=0",
+		"--limit-results=0",
+		"--log=verbose",
+	},
+	init_options = {
+		usePlaceholders = true,
+		completeUnimported = true,
+		clangdFileStatus = true,
+	},
+	filetypes = { "c", "cpp", "objc", "objcpp", "cuda" },
+})
+
+lspconfig.pyright.setup({
+	capabilities = capabilities,
+	settings = {
+		python = {
+			analysis = {
+				autoSearchPaths = true,
+				diagnosticMode = "workspace",
+				useLibraryCodeForTypes = true,
+				typeCheckingMode = "basic",
+			},
+		},
+	},
+})
+
+lspconfig.lua_ls.setup({
+	capabilities = capabilities,
+	settings = {
+		Lua = {
+			runtime = { version = "LuaJIT" },
+			diagnostics = { globals = { "vim" } },
+			workspace = {
+				library = vim.api.nvim_get_runtime_file("", true),
+				checkThirdParty = false,
+			},
+			telemetry = { enable = false },
+		},
+	},
+})
+
+lspconfig.julials.setup({ capabilities = capabilities })
+lspconfig.cmake.setup({ capabilities = capabilities })
+
+lspconfig.ts_ls.setup({
+	capabilities = capabilities,
+	settings = {
+		typescript = {
+			inlayHints = {
+				includeInlayParameterNameHints = "all",
+				includeInlayParameterNameHintsWhenArgumentMatchesName = false,
+				includeInlayFunctionParameterTypeHints = true,
+				includeInlayVariableTypeHints = true,
+				includeInlayPropertyDeclarationTypeHints = true,
+				includeInlayFunctionLikeReturnTypeHints = true,
+				includeInlayEnumMemberValueHints = true,
+			},
+		},
+		javascript = {
+			inlayHints = {
+				includeInlayParameterNameHints = "all",
+				includeInlayParameterNameHintsWhenArgumentMatchesName = false,
+				includeInlayFunctionParameterTypeHints = true,
+				includeInlayVariableTypeHints = true,
+				includeInlayPropertyDeclarationTypeHints = true,
+				includeInlayFunctionLikeReturnTypeHints = true,
+				includeInlayEnumMemberValueHints = true,
+			},
+		},
+	},
+	filetypes = { "javascript", "javascriptreact", "typescript", "typescriptreact" },
+})
+
+lspconfig.dockerls.setup({
+	capabilities = capabilities,
+	settings = {
+		docker = {
+			languageserver = {
+				formatter = {
+					ignoreMultilineInstructions = true,
+				},
+			},
+		},
+	},
+})
+
+lspconfig.glsl_analyzer.setup({
+	capabilities = capabilities,
+	filetypes = { "glsl", "vert", "frag", "geom", "tesc", "tese", "comp" },
+})
+
+lspconfig.html.setup({
+	capabilities = capabilities,
+	settings = {
+		html = {
+			format = {
+				templating = true,
+				wrapLineLength = 120,
+				unformatted = "wbr",
+				contentUnformatted = "pre,code,textarea",
+				indentInnerHtml = true,
+				preserveNewLines = true,
+				maxPreserveNewLines = 2,
+				indentHandlebars = false,
+				endWithNewline = false,
+				extraLiners = "head, body, /html",
+				wrapAttributes = "auto",
+			},
+			hover = {
+				documentation = true,
+				references = true,
+			},
+		},
+	},
+})
+
+lspconfig.jsonls.setup({
+	capabilities = capabilities,
+	settings = {
+		json = {
+			schemas = require("schemastore").json.schemas(),
+			validate = { enable = true },
+			format = { enable = true },
+		},
+	},
+})
+
+lspconfig.yamlls.setup({
+	capabilities = capabilities,
+	settings = {
+		yaml = {
+			schemas = {
+				["https://json.schemastore.org/github-workflow.json"] = "/.github/workflows/*",
+				["https://json.schemastore.org/github-action.json"] = "/action.{yml,yaml}",
+				["https://json.schemastore.org/ansible-stable-2.9.json"] = "/tasks/**/*.{yml,yaml}",
+				["https://json.schemastore.org/prettierrc.json"] = "/.prettierrc.{yml,yaml}",
+				["https://json.schemastore.org/kustomization.json"] = "/kustomization.{yml,yaml}",
+				["https://json.schemastore.org/ansible-playbook.json"] = "*play*.{yml,yaml}",
+				["https://json.schemastore.org/chart.json"] = "/Chart.{yml,yaml}",
+				["https://json.schemastore.org/dependabot-v2.json"] = "/.github/dependabot.{yml,yaml}",
+				["https://json.schemastore.org/gitlab-ci.json"] = "/.gitlab-ci.{yml,yaml}",
+				["https://json.schemastore.org/bamboo-spec.json"] = "/bamboo-specs/*.{yml,yaml}",
+				["https://json.schemastore.org/azure-pipelines.json"] = "/azure-pipelines.{yml,yaml}",
+				["https://json.schemastore.org/docker-compose.json"] = "*docker-compose*.{yml,yaml}",
+				["https://json.schemastore.org/appveyor.json"] = "/.appveyor.{yml,yaml}",
+				["https://json.schemastore.org/travis.json"] = "/.travis.{yml,yaml}",
+				["https://json.schemastore.org/cloudbuild.json"] = "/cloudbuild.{yml,yaml}",
+			},
+			format = { enable = true },
+			validate = true,
+			completion = true,
+			hover = true,
+		},
+	},
+})
+
+-- Macro expansion function for C++
+local function expand_macro()
+	local params = vim.lsp.util.make_position_params()
+	local clients = vim.lsp.get_clients({ bufnr = 0 })
+
+	for _, client in ipairs(clients) do
+		if client.name == "clangd" then
+			client.request("textDocument/hover", params, function(err, result)
+				if result and result.contents then
+					-- Look for macro expansion in hover info
+					local content = ""
+					if type(result.contents) == "string" then
+						content = result.contents
+					elseif result.contents.value then
+						content = result.contents.value
+					elseif result.contents[1] and result.contents[1].value then
+						content = result.contents[1].value
+					end
+
+					-- If it's a macro, show expansion in a floating window
+					if content:match("^#define") or content:match("macro") then
+						vim.lsp.util.open_floating_preview({ content }, "markdown", {
+							border = "rounded",
+							max_width = 80,
+							max_height = 20,
+						})
+					else
+						-- Fallback to regular code action
+						vim.lsp.buf.code_action()
+					end
+				else
+					-- Fallback to code action if no hover info
+					vim.lsp.buf.code_action()
+				end
+			end, 0)
+			return
+		end
+	end
+
+	-- If no clangd client, just do code action
+	vim.lsp.buf.code_action()
+end
+
+-- Enhanced nvim-cmp setup with better C++ macro support
+local cmp = require("cmp")
+local luasnip = require("luasnip")
+
+cmp.setup({
+	snippet = {
+		expand = function(args)
+			luasnip.lsp_expand(args.body)
+		end,
+	},
+
+	mapping = cmp.mapping.preset.insert({
+		["<C-b>"] = cmp.mapping.scroll_docs(-4),
+		["<C-f>"] = cmp.mapping.scroll_docs(4),
+		["<C-Space>"] = cmp.mapping.complete(),
+		["<C-e>"] = cmp.mapping.abort(),
+		["<CR>"] = cmp.mapping.confirm({ select = true }),
+		["<Tab>"] = cmp.mapping(function(fallback)
+			if cmp.visible() then
+				cmp.select_next_item()
+			elseif luasnip.expand_or_locally_jumpable() then
+				luasnip.expand_or_jump()
+			else
+				fallback()
+			end
+		end, { "i", "s" }),
+		["<S-Tab>"] = cmp.mapping(function(fallback)
+			if cmp.visible() then
+				cmp.select_prev_item()
+			elseif luasnip.locally_jumpable(-1) then
+				luasnip.jump(-1)
+			else
+				fallback()
+			end
+		end, { "i", "s" }),
+	}),
+
+	sources = cmp.config.sources({
+		{ name = "nvim_lsp", priority = 1000 },
+		{ name = "luasnip", priority = 750 },
+		{ name = "buffer", priority = 500, keyword_length = 3 },
+		{ name = "path", priority = 250 },
+	}),
+
+	formatting = {
+		expandable_indicator = true,
+		fields = { "kind", "abbr", "menu" },
+		format = function(entry, vim_item)
+			local kind_icons = {
+				Text = "",
+				Method = "󰆧",
+				Function = "󰊕",
+				Constructor = "",
+				Field = "󰇽",
+				Variable = "󰂡",
+				Class = "󰠱",
+				Interface = "",
+				Module = "",
+				Property = "󰜢",
+				Unit = "",
+				Value = "󰎠",
+				Enum = "",
+				Keyword = "󰌋",
+				Snippet = "",
+				Color = "󰏘",
+				File = "󰈙",
+				Reference = "",
+				Folder = "󰉋",
+				EnumMember = "",
+				Constant = "󰏿",
+				Struct = "",
+				Event = "",
+				Operator = "󰆕",
+				TypeParameter = "󰅲",
+				Macro = "󰬔", -- Special icon for macros
+			}
+
+			vim_item.kind = string.format("%s %s", kind_icons[vim_item.kind], vim_item.kind)
+			vim_item.menu = ({
+				nvim_lsp = "[LSP]",
+				luasnip = "[Snippet]",
+				buffer = "[Buffer]",
+				path = "[Path]",
+			})[entry.source.name]
+
+			return vim_item
+		end,
+	},
+
+	window = {
+		completion = cmp.config.window.bordered(),
+		documentation = cmp.config.window.bordered(),
+	},
+
+	experimental = {
+		ghost_text = true,
+	},
+})
+
+-- LSP key mappings
+vim.api.nvim_create_autocmd("LspAttach", {
+	group = vim.api.nvim_create_augroup("UserLspConfig", {}),
+	callback = function(ev)
+		local opts = { buffer = ev.buf }
+
+		vim.keymap.set("n", "gD", vim.lsp.buf.declaration, opts)
+		vim.keymap.set("n", "gd", vim.lsp.buf.definition, opts)
+		vim.keymap.set("n", "<leader>g", vim.lsp.buf.definition, opts)
+		vim.keymap.set("n", "<leader>G", vim.lsp.buf.definition, opts)
+		vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
+		vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
+		vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, opts)
+		vim.keymap.set("n", "<leader>D", vim.lsp.buf.type_definition, opts)
+		vim.keymap.set("n", "<leader>t", vim.lsp.buf.type_definition, opts)
+		vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
+		vim.keymap.set("n", "<leader>r", vim.lsp.buf.rename, opts)
+		vim.keymap.set("n", "<leader>R", vim.lsp.buf.references, opts)
+		vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
+		vim.keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts)
+
+		-- Formatting
+		vim.keymap.set("n", "<leader>f", function()
+			vim.lsp.buf.format({ async = true })
+		end, opts)
+
+		-- Alternative file switching using existing ClangdSwitchSourceHeader
+		vim.keymap.set("n", "<leader>h", "<cmd>ClangdSwitchSourceHeader<cr>", opts)
+
+		-- Macro expansion and code actions
+		vim.keymap.set("n", "<F2>", expand_macro, opts)
+	end,
+})
+
+-- Enhanced diagnostic configuration
+vim.diagnostic.config({
+	virtual_text = {
+		spacing = 4,
+		source = "if_many",
+		prefix = "●",
+	},
+	signs = true,
+	underline = true,
+	update_in_insert = false,
+	severity_sort = true,
+	float = {
+		focusable = false,
+		style = "minimal",
+		border = "rounded",
+		source = "always",
+		header = "",
+		prefix = "",
+	},
+})
+
+-- Diagnostic signs
+local signs = { Error = " ", Warn = " ", Hint = " ", Info = " " }
+for type, icon in pairs(signs) do
+	local hl = "DiagnosticSign" .. type
+	vim.fn.sign_define(hl, { text = icon, texthl = hl, numhl = hl })
+end
+
+-- LuaSnip configuration (enhanced snippet support)
+require("luasnip.loaders.from_vscode").lazy_load()
+require("luasnip.loaders.from_snipmate").lazy_load()
+
+local ls = require("luasnip")
+ls.config.set_config({
+	history = true,
+	updateevents = "TextChanged,TextChangedI",
+	enable_autosnippets = true,
+	ext_opts = {
+		[require("luasnip.util.types").choiceNode] = {
+			active = {
+				virt_text = { { "choiceNode", "Comment" } },
+			},
+		},
+	},
+})
+
+-- Snippet keymaps
+vim.keymap.set({ "i" }, "<C-K>", function()
+	ls.expand()
+end, { silent = true })
+vim.keymap.set({ "i", "s" }, "<C-L>", function()
+	ls.jump(1)
+end, { silent = true })
+vim.keymap.set({ "i", "s" }, "<C-J>", function()
+	ls.jump(-1)
+end, { silent = true })
+vim.keymap.set({ "i", "s" }, "<C-E>", function()
+	if ls.choice_active() then
+		ls.change_choice(1)
+	end
+end, { silent = true })
+
+-- Debugger setup
 require("dapui").setup()
 require("nvim-dap-virtual-text").setup()
 
 local dap = require("dap")
 dap.adapters.cppdbg = {
-    id = "cppdbg",
-    type = "executable",
-    command = "/home/elias/Downloads/ms-vscode.cpptools-1.22.2@linux-x64/extension/debugAdapters/bin/OpenDebugAD7",
+	id = "cppdbg",
+	type = "executable",
+	command = "/home/elias/Downloads/ms-vscode.cpptools-1.22.2@linux-x64/extension/debugAdapters/bin/OpenDebugAD7",
 }
 
 dap.configurations.cpp = {
-    {
-        name = "Launch file",
-        type = "cppdbg",
-        request = "launch",
-        program = function()
-            return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
-        end,
-        cwd = "${workspaceFolder}",
-        stopAtEntry = false,
-        setupCommands = {
-            {
-                text = "-enable-pretty-printing",
-                description = "enable pretty printing",
-                ignoreFailures = false,
-            },
-        },
-    },
-    {
-        name = "Attach to gdbserver :1234",
-        type = "cppdbg",
-        request = "launch",
-        MIMode = "gdb",
-        miDebuggerServerAddress = "localhost:1234",
-        miDebuggerPath = "/usr/bin/gdb",
-        cwd = "${workspaceFolder}",
-        program = function()
-            return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
-        end,
-    },
+	{
+		name = "Launch file",
+		type = "cppdbg",
+		request = "launch",
+		program = function()
+			return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
+		end,
+		cwd = "${workspaceFolder}",
+		stopAtEntry = false,
+		setupCommands = {
+			{
+				text = "-enable-pretty-printing",
+				description = "enable pretty printing",
+				ignoreFailures = false,
+			},
+		},
+	},
+	{
+		name = "Attach to gdbserver :1234",
+		type = "cppdbg",
+		request = "launch",
+		MIMode = "gdb",
+		miDebuggerServerAddress = "localhost:1234",
+		miDebuggerPath = "/usr/bin/gdb",
+		cwd = "${workspaceFolder}",
+		program = function()
+			return vim.fn.input("Path to executable: ", vim.fn.getcwd() .. "/", "file")
+		end,
+	},
 }
 dap.configurations.c = dap.configurations.cpp
 dap.configurations.rust = dap.configurations.cpp
 dap.configurations.cuda = dap.configurations.cpp
-require("dap.ext.vscode").load_launchjs(nil, { cppdbg = { "typescript" } })
 
 local dapui = require("dapui")
 dap.listeners.before.attach.dapui_config = function()
-    dapui.open()
+	dapui.open()
 end
 dap.listeners.before.launch.dapui_config = function()
-    dapui.open()
+	dapui.open()
 end
 dap.listeners.before.event_terminated.dapui_config = function()
-    dapui.close()
+	dapui.close()
 end
 dap.listeners.before.event_exited.dapui_config = function()
-    dapui.close()
+	dapui.close()
 end
 
--- Syntax highlighting
+-- Treesitter configuration
 require("nvim-treesitter.configs").setup({
-    -- A list of parser names, or "all" (the five listed parsers should always be installed)
-    ensure_installed = { "c", "lua", "vim", "vimdoc", "query" },
-
-    -- Install parsers synchronously (only applied to `ensure_installed`)
-    sync_install = false,
-
-    -- Automatically install missing parsers when entering buffer
-    -- Recommendation: set to false if you don't have `tree-sitter` CLI installed locally
-    auto_install = true,
-
-    -- List of parsers to ignore installing (or "all")
-    -- ignore_install = { "javascript" },
-
-    ---- If you need to change the installation directory of the parsers (see -> Advanced Setup)
-    -- parser_install_dir = "/some/path/to/store/parsers", -- Remember to run vim.opt.runtimepath:append("/some/path/to/store/parsers")!
-
-    highlight = {
-        enable = true,
-
-        -- NOTE: these are the names of the parsers and not the filetype. (for example if you want to
-        -- disable highlighting for the `tex` filetype, you need to include `latex` in this list as this is
-        -- the name of the parser)
-        -- list of language that will be disabled
-        disable = { "c", "rust" },
-        -- Or use a function for more flexibility, e.g. to disable slow treesitter highlight for large files
-        disable = function(lang, buf)
-            local max_filesize = 100 * 1024 -- 100 KB
-            local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
-            if ok and stats and stats.size > max_filesize then
-                return true
-            end
-        end,
-
-        -- Setting this to true will run `:h syntax` and tree-sitter at the same time.
-        -- Set this to `true` if you depend on 'syntax' being enabled (like for indentation).
-        -- Using this option may slow down your editor, and you may see some duplicate highlights.
-        -- Instead of true it can also be a list of languages
-        additional_vim_regex_highlighting = false,
-    },
+	ensure_installed = { "c", "cpp", "lua", "vim", "vimdoc", "query", "python", "julia" },
+	sync_install = false,
+	auto_install = true,
+	highlight = {
+		enable = true,
+		disable = function(lang, buf)
+			local max_filesize = 100 * 1024 -- 100 KB
+			local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(buf))
+			if ok and stats and stats.size > max_filesize then
+				return true
+			end
+		end,
+		additional_vim_regex_highlighting = false,
+	},
+	incremental_selection = {
+		enable = true,
+		keymaps = {
+			init_selection = "gnn",
+			node_incremental = "grn",
+			scope_incremental = "grc",
+			node_decremental = "grm",
+		},
+	},
 })
 
--- Formatters
+-- Formatter configuration
 require("conform").setup({
-    formatters_by_ft = {
-        lua = { "stylua" },
-        -- Conform will run multiple formatters sequentially
-        python = { "isort", "black" },
-        -- You can customize some of the format options for the filetype (:help conform.format)
-        rust = { "rustfmt", lsp_format = "fallback" },
-        -- JavaScript-family
-        javascript = { "biome", "prettierd", "prettier", stop_after_first = true },
-        typescript = { "biome", "prettierd", "prettier", stop_after_first = true },
-        javascriptreact = { "biome", "prettierd", "prettier", stop_after_first = true },
-        typescriptreact = { "biome", "prettierd", "prettier", stop_after_first = true },
-        json = { "biome" },
-        -- C-family
-        cpp = { "clang-format" },
-        cuda = { "clang-format" },
-        c = { "clang-format" },
-        -- Shell scripts
-        sh = { "shfmt" },
-        bash = { "shfmt" },
-        zsh = { "shfmt" },
-        xml = { "xmlformat" },
-    },
-    format_on_save = {
-        -- These options will be passed to conform.format()
-        timeout_ms = 5500,
-        lsp_format = "fallback",
-    },
+	formatters_by_ft = {
+		lua = { "stylua" },
+		python = { "isort", "black" },
+		rust = { "rustfmt", lsp_format = "fallback" },
+		-- javascript = { "biome", "prettierd", "prettier", stop_after_first = true },
+		javascript = { "biome", stop_after_first = true },
+		typescript = { "biome", stop_after_first = true },
+		javascriptreact = { "biome", stop_after_first = true },
+		typescriptreact = { "biome", stop_after_first = true },
+		json = { "biome" },
+		cpp = { "clang-format" },
+		cuda = { "clang-format" },
+		c = { "clang-format" },
+		glsl = { "clang-format" },
+		sh = { "shfmt" },
+		bash = { "shfmt" },
+		zsh = { "shfmt" },
+		xml = { "xmlformat" },
+	},
+	format_on_save = {
+		timeout_ms = 5500,
+		lsp_format = "fallback",
+	},
 })
-require("conform").formatters.xmlformat = {
-    prepend_args = { "--blanks", "--selfclose" },
-    -- The base args are { "-filename", "$FILENAME" } so the final args will be
-    -- { "-i", "2", "-filename", "$FILENAME" }
-}
-
-vim.o.formatexpr = "v:lua.require'conform'.formatexpr()"
 
 require("nvim-surround").setup({})
 
-require 'telescope'.setup {
-    extensions = {
-        media_files = {
-            -- filetypes whitelist
-            -- defaults to {"png", "jpg", "mp4", "webm", "pdf"}
-            filetypes = { "png", "webp", "jpg", "jpeg" },
-            -- find command (defaults to `fd`)
-            find_cmd = "rg"
-        }
-    },
-}
-require('telescope').load_extension('media_files')
-
--- LuaSnip
-require("luasnip.loaders.from_vscode").lazy_load()
-
-local ls = require("luasnip")
-ls.config.set_config({
-    history = true,
-    updateevents = "TextChanged,TextChangedI",
-    enable_autosnippets = true,
+require("telescope").setup({
+	extensions = {
+		media_files = {
+			filetypes = { "png", "webp", "jpg", "jpeg" },
+			find_cmd = "rg",
+		},
+	},
 })
+require("telescope").load_extension("media_files")
 
-vim.keymap.set({ "i" }, "<C-K>", function()
-    ls.expand()
-end, { silent = true })
-vim.keymap.set({ "i", "s" }, "<C-L>", function()
-    ls.jump(1)
-end, { silent = true })
-vim.keymap.set({ "i", "s" }, "<C-J>", function()
-    ls.jump(-1)
-end, { silent = true })
-
-vim.keymap.set({ "i", "s" }, "<C-E>", function()
-    if ls.choice_active() then
-        ls.change_choice(1)
-    end
-end, { silent = true })
-
--- Configure nvim-cmp
-local cmp = require("cmp")
-local luasnip = require("luasnip")
-
-cmp.setup({
-    snippet = {
-        expand = function(args)
-            luasnip.lsp_expand(args.body)
-        end,
-    },
-
-    -- Configure completion sources with priority
-    sources = cmp.config.sources({
-        { name = "ycm" },     -- YCM completions with highest priority
-        { name = "luasnip" }, -- Snippets next
-        { name = "buffer" },  -- Buffer words
-        { name = "path" },    -- File paths
-    }),
-
-    -- Key mappings
-    mapping = {
-        ["<C-n>"] = cmp.mapping.select_next_item(),
-        ["<C-p>"] = cmp.mapping.select_prev_item(),
-        ["<C-d>"] = cmp.mapping.scroll_docs(-4),
-        ["<C-f>"] = cmp.mapping.scroll_docs(4),
-        ["<C-Space>"] = cmp.mapping.complete(),
-        ["<C-e>"] = cmp.mapping.close(),
-        ["<CR>"] = cmp.mapping.confirm({
-            behavior = cmp.ConfirmBehavior.Replace,
-            select = true,
-        }),
-        ["<Tab>"] = function(fallback)
-            if cmp.visible() then
-                cmp.select_next_item()
-            elseif luasnip.expand_or_jumpable() then
-                luasnip.expand_or_jump()
-            else
-                fallback()
-            end
-        end,
-        ["<S-Tab>"] = function(fallback)
-            if cmp.visible() then
-                cmp.select_prev_item()
-            elseif luasnip.jumpable(-1) then
-                luasnip.jump(-1)
-            else
-                fallback()
-            end
-        end,
-    },
-
-    -- Appearance
-    formatting = {
-        format = function(entry, vim_item)
-            vim_item.menu = ({
-                ycm = "[YCM]",
-                luasnip = "[Snippet]",
-                buffer = "[Buffer]",
-                path = "[Path]",
-            })[entry.source.name]
-            return vim_item
-        end,
-    },
+vim.api.nvim_create_autocmd("CompleteDone", {
+	callback = function()
+		local info = vim.fn.complete_check()
+		if info == 0 then
+			vim.cmd("silent! pclose")
+		end
+	end,
 })
-
--- YCM configuration
-vim.g.ycm_key_list_select_completion = { "<C-n>" }
-vim.g.ycm_key_list_previous_completion = { "<C-p>" }
-vim.g.ycm_auto_trigger = 1
