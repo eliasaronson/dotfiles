@@ -25,7 +25,8 @@ local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
 -- Add file watching capabilities for better performance
 capabilities.workspace = capabilities.workspace or {}
-capabilities.workspace.didChangeWatchedFiles = capabilities.workspace.didChangeWatchedFiles or {}
+capabilities.workspace.didChangeWatchedFiles =
+    capabilities.workspace.didChangeWatchedFiles or {}
 capabilities.workspace.didChangeWatchedFiles.dynamicRegistration = true
 
 -- LSP server configurations
@@ -254,29 +255,22 @@ cmp.setup({
 	},
 
 	mapping = cmp.mapping.preset.insert({
-		["<C-b>"] = cmp.mapping.scroll_docs(-4),
-		["<C-f>"] = cmp.mapping.scroll_docs(4),
-		["<C-Space>"] = cmp.mapping.complete(),
-		["<C-e>"] = cmp.mapping.abort(),
-		["<CR>"] = cmp.mapping.confirm({ select = true }),
-		["<Tab>"] = cmp.mapping(function(fallback)
-			if cmp.visible() then
-				cmp.select_next_item()
-			elseif luasnip.expand_or_locally_jumpable() then
-				luasnip.expand_or_jump()
-			else
-				fallback()
-			end
-		end, { "i", "s" }),
-		["<S-Tab>"] = cmp.mapping(function(fallback)
-			if cmp.visible() then
-				cmp.select_prev_item()
-			elseif luasnip.locally_jumpable(-1) then
-				luasnip.jump(-1)
-			else
-				fallback()
-			end
-		end, { "i", "s" }),
+  ["<C-b>"] = cmp.mapping.scroll_docs(-4),
+  ["<C-f>"] = cmp.mapping.scroll_docs(4),
+  ["<C-Space>"] = cmp.mapping.complete(), ["<C-e>"] = cmp.mapping.abort(),
+  ["<CR>"] = cmp.mapping.confirm({select = true}),
+  ["<Tab>"] = cmp.mapping(
+      function(fallback) if cmp.visible()
+          then cmp.select_next_item()
+              elseif luasnip.expand_or_locally_jumpable()
+                  then luasnip.expand_or_jump() else fallback() end end,
+      {"i", "s"}),
+  ["<S-Tab>"] =
+      cmp.mapping(function(fallback) if cmp.visible()
+                      then cmp.select_prev_item()
+                          elseif luasnip.locally_jumpable(-1)
+                              then luasnip.jump(-1) else fallback() end end,
+                  {"i", "s"}),
 	}),
 
 	sources = cmp.config.sources({
@@ -553,21 +547,38 @@ require("conform").setup({
 
 require("nvim-surround").setup({})
 
-require("telescope").setup({
-	extensions = {
+local telescope= require("telescope")
+local lga_actions = require("telescope-live-grep-args.actions")
+
+telescope.setup {
+  extensions = {
 		media_files = {
 			filetypes = { "png", "webp", "jpg", "jpeg" },
 			find_cmd = "rg",
 		},
-	},
-})
-require("telescope").load_extension("media_files")
+    live_grep_args = {
+      auto_quoting = true, -- enable/disable auto-quoting
+      -- define mappings, e.g.
+      mappings = { -- extend mappings
+        i = {
+          ["<C-k>"] = lga_actions.quote_prompt(),
+          ["<C-i>"] = lga_actions.quote_prompt({ postfix = " --iglob " }),
+          -- freeze the current list and start a fuzzy search in the frozen list
+          ["<C-space>"] = lga_actions.to_fuzzy_refine,
+        },
+      },
+    }
+  }
+}
+
+telescope.load_extension("media_files")
+telescope.load_extension("live_grep_args")
+vim.keymap.set("n", "<leader>fgg", ":lua require('telescope').extensions.live_grep_args.live_grep_args()<CR>")
 
 vim.api.nvim_create_autocmd("CompleteDone", {
-	callback = function()
-		local info = vim.fn.complete_check()
-		if info == 0 then
-			vim.cmd("silent! pclose")
-		end
-	end,
+  callback = function() local info = vim.fn.complete_check() if info ==
+                                     0 then vim.cmd("silent! pclose") end end,
 })
+
+require('gitsigns').setup()
+require('diffview').setup()

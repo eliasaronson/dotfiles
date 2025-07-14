@@ -42,6 +42,7 @@ if has('nvim')
     Plug 'nvim-telescope/telescope-media-files.nvim'
     Plug 'nvim-lua/plenary.nvim'
     Plug 'nvim-telescope/telescope-fzf-native.nvim', { 'do': 'cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release && cmake --build build --config Release && cmake --install build --prefix build' }
+    Plug 'nvim-telescope/telescope-live-grep-args.nvim'
     Plug 'nvim-treesitter/nvim-treesitter', {'do': ':TSUpdate'}
     Plug 'kylechui/nvim-surround'
     Plug 'neomake/neomake'
@@ -53,6 +54,9 @@ if has('nvim')
     Plug 'folke/neodev.nvim'
     Plug 'stevearc/conform.nvim'
     Plug 'b0o/schemastore.nvim'
+
+    Plug 'lewis6991/gitsigns.nvim'
+    Plug 'sindrets/diffview.nvim'
 else
     Plug 'Valloric/YouCompleteMe'
     Plug 'bfrg/vim-cpp-modern'
@@ -348,3 +352,7 @@ nnoremap <leader>fg <cmd>Telescope live_grep<cr>
 nnoremap <leader>fb <cmd>Telescope buffers<cr>
 nnoremap <leader>fh <cmd>Telescope help_tags<cr>
 nnoremap <leader>fr <cmd>Telescope resume<cr>
+
+" Splits
+set splitright
+set splitbelow
