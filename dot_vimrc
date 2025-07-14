@@ -302,6 +302,8 @@ map <leader>7 :b 7<CR>
 map <leader>8 :b 8<CR>
 map <leader>9 :b 9<CR>
 
+nnoremap <leader>cf :let @+ = expand('%')<CR>
+
 nnoremap <leader>u :UndotreeToggle<CR>
 
 nnoremap <C-p> "0p
