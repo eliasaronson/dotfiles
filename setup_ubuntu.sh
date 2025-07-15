@@ -8,12 +8,14 @@ sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable
 
 # Install packages
 sudo apt update
-sudo apt install vim neovim neovim git i3-wm zsh curl google-chrome-stable nitrogen fonts-powerline ripgrep alacritty python-is-python3 cmake python3-dev g++ dmenu ninja-build xsel nvidia-cudnn scrot ranger clang-format pip npm cargo shfmt fzf #python-neovim golang-go
+sudo apt install vim neovim neovim git i3-wm zsh curl google-chrome-stable nitrogen fonts-powerline ripgrep alacritty python-is-python3 cmake python3-dev g++ dmenu ninja-build xsel nvidia-cudnn scrot ranger clang-format pip npm cargo shfmt fzf autojump
 
 # Oh my zsh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
 git clone https://github.com/zsh-users/zsh-syntax-highlighting.git ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting
+git clone https://github.com/Aloxaf/fzf-tab ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/fzf-tab
+git clone https://github.com/zsh-users/zsh-completions.git ${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions
 
 # git
 git config --global pull.rebase true
