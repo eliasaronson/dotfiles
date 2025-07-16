@@ -129,3 +129,4 @@ export PATH="$PATH:/home/intuicell/Downloads/julia-1.9.3/bin"
 export PATH=$HOME/.config/scripts/:$PATH
 export PATH="$PATH:/home/$USER/julia-1.9.3/bin"
 
+eval "$(zoxide init zsh)"

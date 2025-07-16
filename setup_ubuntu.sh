@@ -8,7 +8,15 @@ sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable
 
 # Install packages
 sudo apt update
-sudo apt install vim neovim neovim git i3-wm zsh curl google-chrome-stable nitrogen fonts-powerline ripgrep alacritty python-is-python3 cmake python3-dev g++ dmenu ninja-build xsel nvidia-cudnn scrot ranger clang-format pip npm cargo shfmt fzf autojump
+sudo apt install vim neovim neovim git i3-wm zsh curl google-chrome-stable nitrogen fonts-powerline ripgrep alacritty python-is-python3 cmake python3-dev g++ dmenu ninja-build xsel nvidia-cudnn scrot ranger clang-format pip npm cargo shfmt fzf fd-find zoxide
+ln -s $(which fdfind) ~/.local/bin/fd
+
+sudo snap install dust
+curl https://raw.githubusercontent.com/jesseduffield/lazydocker/master/scripts/install_update_linux.sh | bash
+
+DIVE_VERSION=$(curl -sL "https://api.github.com/repos/wagoodman/dive/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+curl -fOL "https://github.com/wagoodman/dive/releases/download/v${DIVE_VERSION}/dive_${DIVE_VERSION}_linux_amd64.deb"
+sudo apt install ./dive_${DIVE_VERSION}_linux_amd64.deb
 
 # Oh my zsh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"

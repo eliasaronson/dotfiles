@@ -36,3 +36,5 @@ git config --global --replace-all alias.acp '!git add -u && git commit && git pu
 
 git config --global alias.sh stash
 git config --global --replace-all alias.shp 'stash push'
+
+git config --global --add --bool push.autoSetupRemote true
