@@ -164,6 +164,8 @@ wezterm.on("trigger-vim-with-scrollback", function(window, pane)
 				"nvim",
 				"-c",
 				"ColorHighlight",
+				"-c",
+				"set nospell",
 				name,
 			},
 		}),
