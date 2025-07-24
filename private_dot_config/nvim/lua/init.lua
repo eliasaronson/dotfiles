@@ -37,7 +37,7 @@ lspconfig.clangd.setup({
 		"clangd",
 		"--background-index",
 		"--clang-tidy",
-		"--header-insertion=iwyu",
+		"--header-insertion=never",
 		"--completion-style=detailed",
 		"--function-arg-placeholders",
 		"--fallback-style=llvm",
@@ -46,6 +46,8 @@ lspconfig.clangd.setup({
 		"--limit-references=0",
 		"--limit-results=0",
 		"--log=verbose",
+		"--pch-storage=memory",
+		"--malloc-trim",
 	},
 	init_options = {
 		usePlaceholders = true,
@@ -54,6 +56,7 @@ lspconfig.clangd.setup({
 	},
 	filetypes = { "c", "cpp", "objc", "objcpp", "cuda" },
 })
+vim.lsp.set_log_level("info")
 
 lspconfig.pyright.setup({
 	capabilities = capabilities,
@@ -352,7 +355,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		vim.keymap.set("n", "<leader>g", vim.lsp.buf.definition, opts)
 		vim.keymap.set("n", "<leader>G", vim.lsp.buf.definition, opts)
 		vim.keymap.set("n", "K", vim.lsp.buf.hover, opts)
-		vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
+		-- vim.keymap.set("n", "gi", vim.lsp.buf.implementation, opts)
 		vim.keymap.set("n", "<C-k>", vim.lsp.buf.signature_help, opts)
 		vim.keymap.set("n", "<leader>D", vim.lsp.buf.type_definition, opts)
 		vim.keymap.set("n", "<leader>t", vim.lsp.buf.type_definition, opts)

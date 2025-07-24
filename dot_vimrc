@@ -16,6 +16,7 @@ Plug 'https://github.com/machakann/vim-swap.git'
 Plug 'pangloss/vim-javascript'
 Plug 'mbbill/undotree'
 Plug 'lambdalisue/suda.vim'
+Plug 'chrisbra/Colorizer'
 
 if has('nvim')
     " LSP and completion
@@ -254,7 +255,7 @@ else
     nnoremap <buffer> K <cmd>lua vim.lsp.buf.hover()<cr>
     nnoremap <buffer> gd <cmd>lua vim.lsp.buf.definition()<cr>
     nnoremap <buffer> gD <cmd>lua vim.lsp.buf.declaration()<cr>
-    nnoremap <buffer> gi <cmd>lua vim.lsp.buf.implementation()<cr>
+    "nnoremap <buffer> gi <cmd>lua vim.lsp.buf.implementation()<cr>
     nnoremap <buffer> gt <cmd>lua vim.lsp.buf.type_definition()<cr>
     nnoremap <buffer> gr <cmd>lua vim.lsp.buf.references()<cr>
     nnoremap <buffer> <C-k> <cmd>lua vim.lsp.buf.signature_help()<cr>

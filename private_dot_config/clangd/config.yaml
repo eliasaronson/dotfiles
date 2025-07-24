@@ -1,36 +1,53 @@
-CompileFlags:                     # Tweak the parse settings
+CompileFlags: # Tweak the parse settings
   # treat all files as C++, enable more warnings
   Add: [-Wall, -Wno-missing-prototypes, -I/deps/spdlog/include, -ferror-limit=0]
-  Remove: [-member_function_call_bad_type*, -generate-code*, -expt-relaxed-constexpr*, drv_unsupported_opt, -forward-unknown-to-host-compiler, --diag-suppress, -Xcompiler*, -rdc*, --generate-code*]
-  Compiler: g++               # Change argv[0] of compile flags to `clang++`
-
+  Remove:
+    [
+      -member_function_call_bad_type*,
+      -generate-code*,
+      -expt-relaxed-constexpr*,
+      drv_unsupported_opt,
+      -forward-unknown-to-host-compiler,
+      --diag-suppress,
+      -Xcompiler*,
+      -rdc*,
+      --generate-code*,
+    ]
+  Compiler: g++ # Change argv[0] of compile flags to `clang++`
 ---
-
-If:                               # Apply this config conditionally
+If: # Apply this config conditionally
   PathMatch: .*\.(cu|cuh)
 CompileFlags:
   Add: [--cuda-gpu-arch=sm_86, -xcuda]
   Remove:
-   # strip CUDA fatbin args
-   - "-Xfatbin*"
-   # strip CUDA arch flags
-   - "-gencode*"
-   - "--generate-code*"
-   # strip CUDA flags unknown to clang
-   - "-ccbin*"
-   - "--compiler-options*"
-   - "--expt-extended-lambda"
-   - "--expt-relaxed-constexpr"
-   - "-forward-unknown-to-host-compiler"
-   - "-Werror=cross-execution-space-call"
+    # strip CUDA fatbin args
+    - "-Xfatbin*"
+    # strip CUDA arch flags
+    - "-gencode*"
+    - "--generate-code*"
+    # strip CUDA flags unknown to clang
+    - "-ccbin*"
+    - "--compiler-options*"
+    - "--expt-extended-lambda"
+    - "--expt-relaxed-constexpr"
+    - "-forward-unknown-to-host-compiler"
+    - "-Werror=cross-execution-space-call"
 
 ---
-
 Diagnostics:
   # Tweak Clang-Tidy checks.
   ClangTidy:
-    Add: [performance*, modernize*, readability*, bugprone*, clang-analyzer*, concurrency*, cppcoreguidelines*]
-    Remove: 
+    Add:
+      [
+        performance*,
+        modernize*,
+        readability*,
+        bugprone*,
+        clang-analyzer*,
+        concurrency*,
+        cppcoreguidelines*,
+      ]
+    Remove:
       - modernize-avoid-c-arrays
       - modernize-raw-string-literal
       - modernize-use-trailing-return-type
@@ -55,6 +72,7 @@ Diagnostics:
       - bugprone-easily-swappable-parameters
       - cppcoreguidelines-non-private-member-variables-in-classes
       - cppcoreguidelines-pro-type-union-access
+      - cppcoreguidelines-pro-bounds-array-to-pointer-decay
 
     CheckOptions:
       readability-identifier-naming.VariableCase: lower_case
