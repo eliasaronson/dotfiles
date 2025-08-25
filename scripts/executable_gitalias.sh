@@ -26,6 +26,7 @@ git config --global alias.re restore
 git config --global alias.rb rebase
 git config --global --replace-all alias.rbc "rebase --continue"
 git config --global --replace-all alias.rba "rebase --abort"
+git config --global --replace-all alias.prb "pull origin master --rebase --autostash"
 
 git config --global alias.a add
 git config --global --replace-all alias.ad 'add -i'
