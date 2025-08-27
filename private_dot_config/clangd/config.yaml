@@ -73,6 +73,7 @@ Diagnostics:
       - cppcoreguidelines-non-private-member-variables-in-classes
       - cppcoreguidelines-pro-type-union-access
       - cppcoreguidelines-pro-bounds-array-to-pointer-decay
+      - cppcoreguidelines-avoid-c-arrays
 
     CheckOptions:
       readability-identifier-naming.VariableCase: lower_case

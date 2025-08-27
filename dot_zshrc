@@ -119,7 +119,7 @@ fi
 unset __conda_setup
 # <<< conda initialize <<<
 
-export VISUAL=vim
+export VISUAL=nvim
 export EDITOR="$VISUAL"
 alias vi="nvim"
 alias vim="nvim"

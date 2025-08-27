@@ -16,6 +16,7 @@ require("mason-lspconfig").setup({
 		"lua_ls",
 		"julials",
 		"cmake",
+		"ts_ls",
 	},
 	automatic_installation = true,
 })
@@ -364,6 +365,7 @@ vim.api.nvim_create_autocmd("LspAttach", {
 		vim.keymap.set("n", "<leader>R", vim.lsp.buf.references, opts)
 		vim.keymap.set("n", "gr", vim.lsp.buf.references, opts)
 		vim.keymap.set({ "n", "v" }, "<leader>ca", vim.lsp.buf.code_action, opts)
+		vim.keymap.set("n", "<leader>e", vim.diagnostic.open_float, opts)
 
 		-- Formatting
 		vim.keymap.set("n", "<leader>f", function()
@@ -382,20 +384,37 @@ vim.api.nvim_create_autocmd("LspAttach", {
 vim.diagnostic.config({
 	virtual_text = {
 		spacing = 4,
-		source = "if_many",
+		source = "always", -- Changed from "if_many" to "always"
 		prefix = "●",
+		format = function(diagnostic)
+			if diagnostic.code then
+				return string.format("%s [%s]", diagnostic.message, diagnostic.code)
+			end
+			return diagnostic.message
+		end,
 	},
 	signs = true,
 	underline = true,
 	update_in_insert = false,
 	severity_sort = true,
 	float = {
-		focusable = false,
+		focusable = true,
 		style = "minimal",
 		border = "rounded",
 		source = "always",
 		header = "",
 		prefix = "",
+		format = function(diagnostic)
+			if diagnostic.code then
+				return string.format(
+					"%s [%s]\nSource: %s",
+					diagnostic.message,
+					diagnostic.code,
+					diagnostic.source or "unknown"
+				)
+			end
+			return diagnostic.message
+		end,
 	},
 })
 
@@ -596,6 +615,7 @@ telescope.load_extension("media_files")
 telescope.load_extension("live_grep_args")
 telescope.load_extension("fzf")
 vim.keymap.set("n", "<leader>fs", ":lua require('telescope').extensions.live_grep_args.live_grep_args()<CR>")
+vim.keymap.set("n", "<leader>fe", "<cmd>Telescope diagnostics<cr>")
 
 vim.api.nvim_create_autocmd("CompleteDone", {
 	callback = function()
