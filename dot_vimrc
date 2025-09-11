@@ -315,6 +315,9 @@ let b:match_words = '<<<<<<<:=======:>>>>>>>'
 " Make Y yank till end of line
 nnoremap Y y$
 
+" Remove word boundary when pasting search in insert mode
+inoremap <C-r>/ <C-r>=substitute(substitute(@/, '\\v', '', ''), '\\[<>]', '', 'g')<CR>
+
 "Timeout
 set timeoutlen=1000
 set ttimeoutlen=5
