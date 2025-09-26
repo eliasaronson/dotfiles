@@ -565,7 +565,7 @@ require("conform").setup({
 		sh = { "shfmt" },
 		bash = { "shfmt" },
 		zsh = { "shfmt" },
-		xml = { "xmlformat" },
+		-- xml = { "xmlformat" },
 	},
 	format_on_save = {
 		timeout_ms = 5500,
@@ -628,3 +628,9 @@ vim.api.nvim_create_autocmd("CompleteDone", {
 
 require("gitsigns").setup()
 require("diffview").setup()
+
+-- Normal w and b movements
+vim.g.wordmotion_nomap = 1
+vim.keymap.set({ "n", "v", "o" }, "<M-w>", "<Plug>WordMotion_w")
+vim.keymap.set({ "n", "v", "o" }, "<M-b>", "<Plug>WordMotion_b")
+vim.keymap.set({ "n", "v", "o" }, "<M-e>", "<Plug>WordMotion_e")

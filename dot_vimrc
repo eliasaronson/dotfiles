@@ -17,6 +17,7 @@ Plug 'pangloss/vim-javascript'
 Plug 'mbbill/undotree'
 Plug 'lambdalisue/suda.vim'
 Plug 'chrisbra/Colorizer'
+Plug 'chaoren/vim-wordmotion'
 
 if has('nvim')
     " LSP and completion
