@@ -1,0 +1,23 @@
+#!/bin/bash
+
+PRIMARY="eDP-1"
+EXTERNAL=$(xrandr | grep " connected" | grep -v "primary" | cut -d' ' -f1 | head -n1)
+
+if [ -n "$EXTERNAL" ] && xrandr | grep -q "^${EXTERNAL} connected"; then
+    # External connected - position laptop after scaled external width (3440*1.5=5160)
+    xrandr --output $EXTERNAL --mode 3440x1440 --rate 60 --scale 1.5x1.5 --pos 0x0 \
+        --output $PRIMARY --mode 3200x2000 --primary --pos 5160x0
+
+    sleep 1
+
+    i3-msg "workspace 0; move workspace to output $PRIMARY"
+    for ws in 1 2 3 4 5 6 7 8 9; do
+        i3-msg "workspace $ws; move workspace to output $EXTERNAL"
+    done
+    i3-msg "workspace 1"
+else
+    xrandr --output $PRIMARY --mode 3200x2000 --primary --scale 1x1
+    for output in HDMI-1 DP-1 DP-2 DP-3 DP-4; do
+        xrandr --output $output --off 2>/dev/null
+    done
+fi
