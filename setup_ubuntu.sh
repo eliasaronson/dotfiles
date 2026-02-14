@@ -12,7 +12,7 @@ echo 'deb [signed-by=/usr/share/keyrings/wezterm-fury.gpg] https://apt.fury.io/w
 
 # Install packages
 sudo apt update
-sudo apt install vim neovim neovim git i3-wm zsh curl google-chrome-stable nitrogen fonts-powerline ripgrep alacritty python-is-python3 cmake python3-dev g++ dmenu ninja-build xsel nvidia-cudnn scrot ranger clang-format pip npm cargo shfmt fzf fd-find zoxide highlight libnotify-bin dunst xfce4-power-manager i3blocks brightnessctl pulseaudio-utils blueman wezterm flameshot
+sudo apt install vim neovim neovim git i3-wm zsh curl google-chrome-stable nitrogen fonts-powerline ripgrep alacritty python-is-python3 cmake python3-dev g++ dmenu ninja-build xsel nvidia-cudnn scrot ranger clang-format pip npm cargo shfmt fzf fd-find zoxide highlight libnotify-bin dunst xfce4-power-manager i3blocks brightnessctl pulseaudio-utils blueman wezterm flameshot xclip
 ln -s $(which fdfind) ~/.local/bin/fd
 
 sudo snap install dust
