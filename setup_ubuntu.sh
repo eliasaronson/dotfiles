@@ -80,3 +80,5 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv tool install ruff@latest
 
 pip install qtconsole --break-system-packages
+
+# TODO Nvidia, default terminal
