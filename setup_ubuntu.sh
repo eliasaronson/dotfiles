@@ -373,7 +373,18 @@ else
 fi
 
 # ==============================================================================
-# Section 13: uv + ruff
+# Section 13: Julia (via juliaup)
+# ==============================================================================
+log_section "Julia"
+if ! command -v julia &>/dev/null; then
+    log_info "Installing Julia via juliaup"
+    curl -fsSL https://install.julialang.org | sh
+else
+    log_skip "Julia"
+fi
+
+# ==============================================================================
+# Section 14: uv + ruff
 # ==============================================================================
 log_section "uv + ruff"
 if ! command -v uv &>/dev/null; then
@@ -393,7 +404,7 @@ else
 fi
 
 # ==============================================================================
-# Section 14: qtconsole
+# Section 15: qtconsole
 # ==============================================================================
 log_section "qtconsole"
 if ! python3 -c "import qtconsole" &>/dev/null; then
@@ -404,7 +415,7 @@ else
 fi
 
 # ==============================================================================
-# Section 15: Set Wezterm as Default Terminal
+# Section 16: Set Wezterm as Default Terminal
 # ==============================================================================
 log_section "Default Terminal (Wezterm)"
 WEZTERM_PATH="$(which wezterm 2>/dev/null || true)"
@@ -424,7 +435,7 @@ else
 fi
 
 # ==============================================================================
-# Section 16: NVIDIA GPU + CUDA (conditional)
+# Section 17: NVIDIA GPU + CUDA (conditional)
 # ==============================================================================
 log_section "NVIDIA GPU + CUDA"
 if lspci | grep -qi nvidia; then
