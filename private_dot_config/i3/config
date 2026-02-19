@@ -54,6 +54,8 @@ bindsym XF86AudioRaiseVolume exec "amixer set Master -q 5%+"
 bindsym XF86AudioLowerVolume exec "amixer set Master -q 5%-"
 bindsym XF86AudioMute exec "amixer -q sset Master,0 toggle"
 
+bindsym $mod+i exec --no-startup-id "XDG_CURRENT_DESKTOP=GNOME gnome-control-center"
+
 ################################################################################################
 ## sound-section - DO NOT EDIT if you wish to automatically upgrade Alsa -> Pulseaudio later! ##
 ################################################################################################
