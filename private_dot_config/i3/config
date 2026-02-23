@@ -43,16 +43,31 @@ bindsym $mod+z exec --no-startup-id clipmenu -i -fn Terminus:size=8 -nb '#002b36
 bindsym $mod+d exec /home/$USER/.config/scripts/dmenu_recency
 # bindsym $mod+d exec --no-startup-id  i3-dmenu-desktop
 
-# Change keyboard light
+# Media keys for brightness and volume control
+# Brightness control
+# bindsym XF86MonBrightnessUp exec --no-startup-id brightnessctl -d intel_backlight set +5%
+# bindsym XF86MonBrightnessDown exec --no-startup-id brightnessctl -d intel_backlight set 5%-
+bindsym XF86MonBrightnessUp exec --no-startup-id brightnessctl -d intel_backlight set +5% && ddcutil setvcp 10 + 50
+bindsym XF86MonBrightnessDown exec --no-startup-id brightnessctl -d intel_backlight set 5%- && ddcutil setvcp 10 - 50
+
+# Volume control
+bindsym XF86AudioRaiseVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ +5%
+bindsym XF86AudioLowerVolume exec --no-startup-id pactl set-sink-volume @DEFAULT_SINK@ -5%
+bindsym XF86AudioMute exec --no-startup-id pactl set-sink-mute @DEFAULT_SINK@ toggle
+
+# Optional: Microphone mute toggle
+bindsym XF86AudioMicMute exec --no-startup-id pactl set-source-mute @DEFAULT_SOURCE@ toggle
+
+# Change keyboard light (for keyboards with backlight)
 bindsym XF86Launch3 exec --no-startup-id asusctl led-mode -n
 bindsym XF86Launch2 exec --no-startup-id asusctl led-mode -p
 bindcode 229 exec --no-startup-id asusctl -k low
 bindcode 230 exec --no-startup-id asusctl -k high
-bindsym XF86MonBrightnessUp exec --no-startup-id brightnessctl set +5%
-bindsym XF86MonBrightnessDown exec --no-startup-id brightnessctl set 5%-
-bindsym XF86AudioRaiseVolume exec "amixer set Master -q 5%+"
-bindsym XF86AudioLowerVolume exec "amixer set Master -q 5%-"
-bindsym XF86AudioMute exec "amixer -q sset Master,0 toggle"
+# bindsym XF86MonBrightnessUp exec --no-startup-id brightnessctl set +5%
+# bindsym XF86MonBrightnessDown exec --no-startup-id brightnessctl set 5%-
+# bindsym XF86AudioRaiseVolume exec "amixer set Master -q 5%+"
+# bindsym XF86AudioLowerVolume exec "amixer set Master -q 5%-"
+# bindsym XF86AudioMute exec "amixer -q sset Master,0 toggle"
 
 bindsym $mod+i exec --no-startup-id "XDG_CURRENT_DESKTOP=GNOME gnome-control-center"
 
@@ -75,11 +90,11 @@ bindsym $mod+Ctrl+m exec terminal -e 'alsamixer'
 # Start Applications
 bindsym $mod+Ctrl+b exec terminal -e 'bmenu'
 bindsym $mod+F2 exec google-chrome-stable
-bindsym $mod+n exec --no-startup-id dolphin --platformtheme qt5ct
+bindsym $mod+n exec --no-startup-id nautilus
 bindsym $mod+F3 exec gnome-control-center
 
 # Keyboard layout
-#bindsym $mod+Shift+u exec setxkbmap -layout us
+exec --no-startup-id setxkbmap -layout se -variant US_swe
 bindsym $mod+Shift+u exec setxkbmap -layout se
 bindsym $mod+u exec setxkbmap -layout se -variant US_swe
 
@@ -100,7 +115,7 @@ bindsym $mod+Shift+d --release exec "killall dunst; exec notify-send 'restart du
 #bindsym Ctrl+Print exec --no-startup-id i3-scrot
 #bindsym $mod+Print --release exec --no-startup-id i3-scrot -w
 #bindsym $mod+Shift+Print --release exec --no-startup-id i3-scrot -s
-bindsym Print exec "flameshot gui"
+bindsym Print exec "env QT_AUTO_SCREEN_SCALE_FACTOR=1.5 QT_SCREEN_SCALE_FACTORS= flameshot gui"
 
 # Multi-screen screenshots with scrot
 bindsym --release Print exec scrot 'screenshot_%Y%m%d_%H%M%S.png' -e 'mkdir -p ~/Pictures/screenshots && mv $f ~/Pictures/screenshots && xclip -selection clipboard -t image/png -i ~/Pictures/screenshots/`ls -1 -t ~/Pictures/screenshots | head -1`' # All screens
@@ -253,6 +268,11 @@ bindsym $mod+Ctrl+8 move container to workspace $ws8; workspace $ws8
 bindsym $mod+Ctrl+9 move container to workspace $ws9; workspace $ws9
 bindsym $mod+Ctrl+0 move container to workspace $ws0; workspace $ws0
 
+bindcode Mod1+Shift+10 exec --no-startup-id ~/.config/i3/focus-tab.sh 1
+bindcode Mod1+Shift+11 exec --no-startup-id ~/.config/i3/focus-tab.sh 2
+bindcode Mod1+Shift+12 exec --no-startup-id ~/.config/i3/focus-tab.sh 3
+bindcode Mod1+Shift+13 exec --no-startup-id ~/.config/i3/focus-tab.sh 4
+
 # Open applications on specific workspaces
 # assign [class="Thunderbird"] $ws1
 assign [class="google-chrome-stable"] $ws2
@@ -293,9 +313,22 @@ for_window [class="gfx"] floating enable
 for_window [class=" live"] floating enable
 for_window [class="Matplotlib"] floating enable
 for_window [class="juliacalc"] move scratchpad
-for_window [class="juliacalc"] resize set 800px 400px
+for_window [class="juliacalc"] resize set 1200 600px
+workspace 1 output DP-3 DP-2 DP-1 HDMI-1 eDP-1
+workspace 2 output DP-3 DP-2 DP-1 HDMI-1 eDP-1
+workspace 3 output DP-3 DP-2 DP-1 HDMI-1 eDP-1
+workspace 4 output DP-3 DP-2 DP-1 HDMI-1 eDP-1
+workspace 5 output DP-3 DP-2 DP-1 HDMI-1 eDP-1
+workspace 6 output DP-3 DP-2 DP-1 HDMI-1 eDP-1
+workspace 7 output DP-3 DP-2 DP-1 HDMI-1 eDP-1
+workspace 8 output DP-3 DP-2 DP-1 HDMI-1 eDP-1
+workspace 9 output DP-3 DP-2 DP-1 HDMI-1 eDP-1
+workspace 0 output eDP-1
+exec --no-startup-id ~/.local/bin/monitor-setup
 
 exec_always --no-startup-id alacritty --class "juliacalc" -e julia
+exec_always --no-startup-id "killall xbindkeys; xbindkeys"
+exec --no-startup-id kdeconnect-indicator
 
 # switch to workspace with urgent window automatically
 for_window [urgent=latest] focus
@@ -361,7 +394,7 @@ exec --no-startup-id /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
 exec --no-startup-id nitrogen --restore; sleep 1; compton -b
 #exec --no-startup-id manjaro-hello
 exec --no-startup-id nm-applet
-exec --no-startup-id xfce4-power-manager
+# exec --no-startup-id xfce4-power-manager
 exec --no-startup-id pamac-tray
 exec --no-startup-id clipmenud
 # exec --no-startup-id clipit
@@ -407,7 +440,7 @@ set_from_resource $term_color15    color15
 # Start i3bar to display a workspace bar (plus the system information i3status if available)
 bar {
 	i3bar_command i3bar
-	status_command i3status -c /home/$USER/.config/i3status/i3status.conf
+	status_command i3blocks -c /home/$USER/.config/i3blocks/i3blocks.conf
 	position bottom
 
 ## please set your primary output first. Example: 'xrandr --output eDP1 --primary'
