@@ -1,23 +1,78 @@
 #!/bin/bash
 
+LOCKFILE="/tmp/monitor-setup.lock"
+STATE_FILE="/tmp/monitor-setup.state"
+
+# Prevent concurrent runs
+exec 9>"$LOCKFILE"
+flock -n 9 || exit 0
+
+# Debounce: ignore if last run was less than 5 seconds ago
+if [ -f "$STATE_FILE" ]; then
+    LAST_RUN=$(stat -c %Y "$STATE_FILE" 2>/dev/null || echo 0)
+    NOW=$(date +%s)
+    if [ $((NOW - LAST_RUN)) -lt 5 ]; then
+        exit 0
+    fi
+fi
+
 PRIMARY="eDP-1"
-EXTERNAL=$(xrandr | grep " connected" | grep -v "primary" | cut -d' ' -f1 | head -n1)
+
+# Get all connected non-primary outputs
+EXTERNAL=$(xrandr | grep " connected" | grep -v "$PRIMARY" | cut -d' ' -f1 | head -n1)
+
+# Build state from all connected outputs (not just external)
+CURRENT_STATE=$(xrandr | grep " connected" | cut -d' ' -f1 | sort | tr '\n' ',')
+PREVIOUS_STATE=$(cat "$STATE_FILE" 2>/dev/null || echo "")
+if [ "$CURRENT_STATE" = "$PREVIOUS_STATE" ]; then
+    touch "$STATE_FILE"
+    exit 0
+fi
+echo "$CURRENT_STATE" > "$STATE_FILE"
 
 if [ -n "$EXTERNAL" ] && xrandr | grep -q "^${EXTERNAL} connected"; then
-    # External connected - position laptop after scaled external width (3440*1.5=5160)
-    xrandr --output $EXTERNAL --mode 3440x1440 --rate 60 --scale 1.5x1.5 --pos 0x0 \
-        --output $PRIMARY --mode 3200x2000 --primary --pos 5160x0
+    # Get the preferred mode (marked with +) or first available mode
+    MODE=$(xrandr | grep -A1 "^${EXTERNAL} connected" | tail -1 | awk '{print $1}')
 
-    sleep 1
+    # Get width for positioning (you may need to adjust scale per monitor)
+    WIDTH=$(echo $MODE | cut -d'x' -f1)
+    SCALE=1.2
+    SCALED_WIDTH=$(echo "$WIDTH * $SCALE" | bc | cut -d'.' -f1)
 
-    i3-msg "workspace 0; move workspace to output $PRIMARY"
-    for ws in 1 2 3 4 5 6 7 8 9; do
-        i3-msg "workspace $ws; move workspace to output $EXTERNAL"
+    # xrandr --output $EXTERNAL --mode $MODE --rate 60 --scale ${SCALE}x${SCALE} --pos 0x0 \
+    # --output $PRIMARY --mode 3200x2000 --primary --pos ${SCALED_WIDTH}x0
+    xrandr --output $EXTERNAL --mode $MODE --rate 60 --pos 0x0 \
+        --output $PRIMARY --mode 3200x2000 --primary --pos ${SCALED_WIDTH}x0
+
+    # Wait for i3 to register the new output
+    for i in $(seq 1 10); do
+        I3_EXTERNAL=$(i3-msg -t get_outputs 2>/dev/null | python3 -c "
+import sys, json
+for o in json.load(sys.stdin):
+    if o['name'] != '$PRIMARY' and o['active']:
+        print(o['name']); break" 2>/dev/null)
+        [ -n "$I3_EXTERNAL" ] && break
+        sleep 0.5
+    done
+
+    if [ -n "$I3_EXTERNAL" ]; then
+        i3-msg "workspace 0; move workspace to output $PRIMARY"
+        for ws in 1 2 3 4 5 6 7 8 9; do
+            i3-msg "workspace $ws; move workspace to output $I3_EXTERNAL"
+        done
+        i3-msg "workspace 1"
+    fi
+else
+    # Move all workspaces to primary before disabling outputs
+    for ws in 0 1 2 3 4 5 6 7 8 9; do
+        i3-msg "workspace $ws; move workspace to output $PRIMARY" 2>/dev/null
     done
     i3-msg "workspace 1"
-else
+
     xrandr --output $PRIMARY --mode 3200x2000 --primary --scale 1x1
-    for output in HDMI-1 DP-1 DP-2 DP-3 DP-4; do
-        xrandr --output $output --off 2>/dev/null
+
+    # Disable all disconnected outputs (detect dynamically instead of hardcoding)
+    xrandr | grep " disconnected" | cut -d' ' -f1 | while read output; do
+        xrandr --output "$output" --off 2>/dev/null
     done
 fi
