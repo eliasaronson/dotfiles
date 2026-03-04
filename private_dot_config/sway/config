@@ -1,0 +1,8 @@
+# Sway config - loads shared + sway-specific settings
+set $mod Mod4
+
+# Source login profile for PATH and environment variables
+# (Sway doesn't source ~/.profile like X11 display managers do)
+exec systemctl --user import-environment PATH
+include ~/.config/wm/shared
+include ~/.config/wm/sway-only
