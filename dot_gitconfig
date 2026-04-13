@@ -1,0 +1,72 @@
+[user]
+	name = Elias H Aronsson
+	email = elias@andonlabs.com
+[safe]
+	directory = /home/claudibot/Documents/code/vending-agent-legacy
+[pull]
+	rebase = true
+[core]
+	autocrlf = input
+    pager = delta
+[interactive]
+    diffFilter = delta --color-only
+[delta]
+    navigate = true  # use n and N to move between diff sections
+    dark = true      # or light = true, or o
+[alias]
+	co = checkout
+	br = branch
+	ci = commit
+	cia = commit --amend
+	cin = commit --no-verify
+	cian = commit --amend --no-verify
+	st = status
+	wc = whatchanged
+	df = diff
+	d = pull
+	u = push
+	un = push --no-verify
+	uf = push --force-with-lease
+	cp = cherry-pick
+	sw = show
+	rs = restore --staged
+	re = restore
+	rb = rebase
+	rbc = rebase --continue
+	rba = rebase --abort
+	prb = pull origin main --rebase --autostash
+	a = add
+	ad = add -i
+	ap = add -p
+	au = add -u
+	ac = !git add -u && git commit
+	acp = !git add -u && git commit && git push
+	sh = stash
+	shp = stash push
+	aucp = !git add -u && git commit && git push
+	res = restore --staged
+	auc = !git add -u && git commit
+	cip = !git commit && git push
+	rbi = rebase -i
+[push]
+	autoSetupRemote = true
+	autoSetupRemote = true
+	autoSetupRemote = true
+	autoSetupRemote = true
+	autoSetupRemote = true
+[credential "https://github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
+[merge]
+	conflictstyle = zdiff3
+[rerere]
+	enabled = true
+	autoupdate = true
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
