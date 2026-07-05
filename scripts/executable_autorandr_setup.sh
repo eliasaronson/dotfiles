@@ -15,7 +15,8 @@ if [ -n "$EXTERNAL" ]; then
     # Place external monitor to the right of primary at max resolutions
     # xrandr --output $PRIMARY --mode $PRIMARY_RES --primary --output $EXTERNAL --mode $EXTERNAL_RES --right-of $PRIMARY
     # Place external monitor to the LEFT of primary at max resolutions
-    xrandr --output $PRIMARY --mode $PRIMARY_RES --primary --output $EXTERNAL --mode $EXTERNAL_RES --left-of $PRIMARY
+    # xrandr --output $PRIMARY --mode $PRIMARY_RES --primary --output $EXTERNAL --mode $EXTERNAL_RES --left-of $PRIMARY
+    xrandr --output $PRIMARY --mode $PRIMARY_RES --primary --output $EXTERNAL --mode $EXTERNAL_RES --rate 100 --left-of $PRIMARY
 
     # Wait a moment for xrandr to apply
     sleep 1

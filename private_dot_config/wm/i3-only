@@ -17,8 +17,8 @@ bindsym $mod+Shift+u exec setxkbmap -layout se
 bindsym $mod+u exec setxkbmap -layout se -variant US_swe
 
 # Compositor (X11)
-bindsym $mod+t exec --no-startup-id pkill compton
-bindsym $mod+Ctrl+t exec --no-startup-id compton -b
+bindsym $mod+t exec --no-startup-id pkill picom
+bindsym $mod+Ctrl+t exec --no-startup-id picom -b --backend glx --vsync
 
 # Screenshots (X11)
 bindsym Print exec "env QT_AUTO_SCREEN_SCALE_FACTOR=1.5 QT_SCREEN_SCALE_FACTORS= flameshot gui"
@@ -33,12 +33,14 @@ bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'You pressed the exit shortcu
 
 # Lock screen (X11)
 bindsym $mod+Shift+x exec /home/$USER/.config/scripts/lock
-bindsym $mod+F12 exec i3lock-fancy
 exec --no-startup-id xss-lock --transfer-sleep-lock -- /home/$USER/.config/scripts/lock
-exec --no-startup-id xautolock -time 10 -locker blurlock
 
 # Optimus / prime-offloading (X11)
-exec --no-startup-id "prime-offload"
+# Disabled: this dGPU is render-only (no display outputs are wired to it — all
+# screens are on the Intel GPU), so setprovideroutputsource just pins the NVIDIA
+# awake and drains battery. On-demand render offload (__NV_PRIME_RENDER_OFFLOAD=1)
+# still works without it. Re-enable only if a dock routes a display through NVIDIA.
+# exec --no-startup-id "prime-offload"
 
 # Monitor setup (X11 / xrandr)
 exec --no-startup-id ~/.local/bin/monitor-setup
@@ -57,12 +59,11 @@ workspace 0 output eDP-1
 
 # X11 autostart
 exec --no-startup-id nm-applet
-exec --no-startup-id volumeicon
 exec --no-startup-id clipmenud
-exec --no-startup-id nitrogen --restore; sleep 1; compton -b
-exec --no-startup-id start_conky_maia
-exec_always --no-startup-id ff-theme-util
-exec_always --no-startup-id fix_xcursor
+# Wallpaper is restored by monitor-setup after the layout settles (avoids a
+# startup race that left the root window black).
+# Autostart disabled (caused Chrome input lag); toggle on demand with $mod+Ctrl+t / $mod+t
+#exec --no-startup-id sh -c "sleep 1; picom -b --backend glx --vsync"
 exec_always --no-startup-id "killall xbindkeys; xbindkeys"
 
 # Xresources color palette (available for future use)

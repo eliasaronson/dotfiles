@@ -1,0 +1,17 @@
+#!/bin/bash
+
+sudo tee /etc/udev/rules.d/95-monitor-hotplug.rules << 'EOF'
+ACTION=="change", SUBSYSTEM=="drm", RUN+="/usr/local/bin/hotplug-monitor"
+EOF
+
+sudo tee /usr/local/bin/hotplug-monitor << 'EOF'
+#!/bin/bash
+export DISPLAY=:1
+export XAUTHORITY=/run/user/1000/gdm/Xauthority
+export DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/1000/bus"
+
+su {{ .chezmoi.username }} -c "{{ .chezmoi.homeDir }}/.local/bin/monitor-setup"
+EOF
+
+sudo chmod +x /usr/local/bin/hotplug-monitor
+sudo udevadm control --reload-rules

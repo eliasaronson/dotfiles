@@ -18,10 +18,17 @@ fi
 
 PRIMARY="eDP-1"
 
-# Get all connected non-primary outputs
-EXTERNAL=$(xrandr | grep " connected" | grep -v "$PRIMARY" | cut -d' ' -f1 | head -n1)
+# Highest refresh rate available for a given output+mode (falls back to 60).
+max_rate() {
+    xrandr | grep -A60 "^$1 connected" | grep -m1 "   $2 " \
+        | grep -oE '[0-9]+\.[0-9]+' | sort -g | tail -1
+}
 
-# Build state from all connected outputs (not just external)
+# Get all connected non-primary outputs
+EXTERNALS=$(xrandr | grep " connected" | grep -v "$PRIMARY" | cut -d' ' -f1)
+NUM_EXTERNAL=$(echo "$EXTERNALS" | grep -c .)
+
+# Build state from all connected outputs
 CURRENT_STATE=$(xrandr | grep " connected" | cut -d' ' -f1 | sort | tr '\n' ',')
 PREVIOUS_STATE=$(cat "$STATE_FILE" 2>/dev/null || echo "")
 if [ "$CURRENT_STATE" = "$PREVIOUS_STATE" ]; then
@@ -30,30 +37,64 @@ if [ "$CURRENT_STATE" = "$PREVIOUS_STATE" ]; then
 fi
 echo "$CURRENT_STATE" > "$STATE_FILE"
 
-if [ -n "$EXTERNAL" ] && xrandr | grep -q "^${EXTERNAL} connected"; then
-    # Get the preferred mode (marked with +) or first available mode
-    MODE=$(xrandr | grep -A1 "^${EXTERNAL} connected" | tail -1 | awk '{print $1}')
-
-    # Get width for positioning (you may need to adjust scale per monitor)
-    WIDTH=$(echo $MODE | cut -d'x' -f1)
-    SCALE=1.2
-    SCALED_WIDTH=$(echo "$WIDTH * $SCALE" | bc | cut -d'.' -f1)
-
-    # xrandr --output $EXTERNAL --mode $MODE --rate 60 --scale ${SCALE}x${SCALE} --pos 0x0 \
-    # --output $PRIMARY --mode 3200x2000 --primary --pos ${SCALED_WIDTH}x0
-    xrandr --output $EXTERNAL --mode $MODE --rate 60 --pos 0x0 \
-        --output $PRIMARY --mode 3200x2000 --primary --pos ${SCALED_WIDTH}x0
-
-    # Wait for i3 to register the new output
+# Helper: wait for i3 to register outputs and return active non-primary output names
+get_i3_externals() {
     for i in $(seq 1 10); do
-        I3_EXTERNAL=$(i3-msg -t get_outputs 2>/dev/null | python3 -c "
+        I3_EXT=$(i3-msg -t get_outputs 2>/dev/null | python3 -c "
 import sys, json
 for o in json.load(sys.stdin):
     if o['name'] != '$PRIMARY' and o['active']:
-        print(o['name']); break" 2>/dev/null)
-        [ -n "$I3_EXTERNAL" ] && break
+        print(o['name'])" 2>/dev/null)
+        [ -n "$I3_EXT" ] && echo "$I3_EXT" && return
         sleep 0.5
     done
+}
+
+if [ "$NUM_EXTERNAL" -ge 2 ]; then
+    # ===== Office: 3 screens (DP-3 | DP-4 | eDP-1) =====
+    EXT1=$(echo "$EXTERNALS" | tail -n1)
+    EXT2=$(echo "$EXTERNALS" | head -n1)
+
+    # Get modes
+    MODE1=$(xrandr | grep -A1 "^${EXT1} connected" | tail -1 | awk '{print $1}')
+    MODE2=$(xrandr | grep -A1 "^${EXT2} connected" | tail -1 | awk '{print $1}')
+    WIDTH1=$(echo "$MODE1" | cut -d'x' -f1)
+    WIDTH2=$(echo "$MODE2" | cut -d'x' -f1)
+
+    # Layout: EXT1 | EXT2 | PRIMARY
+    xrandr \
+        --output "$EXT1" --mode "$MODE1" --rate "$(max_rate "$EXT1" "$MODE1")" --pos 0x0 \
+        --output "$EXT2" --mode "$MODE2" --rate "$(max_rate "$EXT2" "$MODE2")" --pos ${WIDTH1}x0 \
+        --output "$PRIMARY" --mode 3200x2000 --rate "$(max_rate "$PRIMARY" 3200x2000)" --primary --pos $((WIDTH1 + WIDTH2))x0
+
+    I3_EXTERNALS=$(get_i3_externals)
+    I3_EXT1=$(echo "$I3_EXTERNALS" | head -n1)
+    I3_EXT2=$(echo "$I3_EXTERNALS" | tail -n1)
+
+    if [ -n "$I3_EXT1" ] && [ -n "$I3_EXT2" ]; then
+        # Laptop: 0, External 1: odd (1,3,5,7,9), External 2: even (2,4,6,8)
+        i3-msg "workspace 0; move workspace to output $PRIMARY"
+        for ws in 1 3 5 7 9; do
+            i3-msg "workspace $ws; move workspace to output $I3_EXT1"
+        done
+        for ws in 2 4 6 8; do
+            i3-msg "workspace $ws; move workspace to output $I3_EXT2"
+        done
+        i3-msg "workspace 1"
+    fi
+
+elif [ "$NUM_EXTERNAL" -eq 1 ]; then
+    # ===== Home: 2 screens (EXTERNAL | PRIMARY) =====
+    EXTERNAL=$(echo "$EXTERNALS" | head -n1)
+    MODE=$(xrandr | grep -A1 "^${EXTERNAL} connected" | tail -1 | awk '{print $1}')
+    WIDTH=$(echo "$MODE" | cut -d'x' -f1)
+    SCALE=1.2
+    SCALED_WIDTH=$(echo "$WIDTH * $SCALE" | bc | cut -d'.' -f1)
+
+    xrandr --output "$EXTERNAL" --mode "$MODE" --rate "$(max_rate "$EXTERNAL" "$MODE")" --pos 0x0 \
+        --output "$PRIMARY" --mode 3200x2000 --rate "$(max_rate "$PRIMARY" 3200x2000)" --primary --pos ${SCALED_WIDTH}x0
+
+    I3_EXTERNAL=$(get_i3_externals | head -n1)
 
     if [ -n "$I3_EXTERNAL" ]; then
         i3-msg "workspace 0; move workspace to output $PRIMARY"
@@ -62,17 +103,23 @@ for o in json.load(sys.stdin):
         done
         i3-msg "workspace 1"
     fi
+
 else
-    # Move all workspaces to primary before disabling outputs
+    # ===== Laptop only =====
     for ws in 0 1 2 3 4 5 6 7 8 9; do
         i3-msg "workspace $ws; move workspace to output $PRIMARY" 2>/dev/null
     done
     i3-msg "workspace 1"
 
-    xrandr --output $PRIMARY --mode 3200x2000 --primary --scale 1x1
+    xrandr --output "$PRIMARY" --mode 3200x2000 --rate "$(max_rate "$PRIMARY" 3200x2000)" --primary --scale 1x1
 
-    # Disable all disconnected outputs (detect dynamically instead of hardcoding)
+    # Disable all disconnected outputs
     xrandr | grep " disconnected" | cut -d' ' -f1 | while read output; do
         xrandr --output "$output" --off 2>/dev/null
     done
 fi
+
+# Reapply wallpaper now that the monitor layout is settled. Run on every
+# layout change (boot, dock, hotplug) so nitrogen restores against the final
+# geometry instead of racing this script at startup.
+nitrogen --restore >/dev/null 2>&1 &

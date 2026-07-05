@@ -482,6 +482,115 @@ else
 fi
 
 # ==============================================================================
+# Section 18: Applications & Services
+# ==============================================================================
+log_section "Applications & Services"
+
+# --- Docker (official repo) ---
+if ! dpkg -s docker-ce &>/dev/null; then
+    log_info "Installing Docker"
+    DOCKER_KEYRING="/usr/share/keyrings/docker.gpg"
+    [ -f "$DOCKER_KEYRING" ] || curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
+        | sudo gpg --dearmor -o "$DOCKER_KEYRING"
+    echo "deb [arch=${ARCH} signed-by=${DOCKER_KEYRING}] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+        | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt update
+    sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    sudo usermod -aG docker "$USER"   # log out/in for group membership to apply
+else
+    log_skip "Docker"
+fi
+
+# --- Tailscale (official installer handles repo+key) ---
+if ! command -v tailscale &>/dev/null; then
+    log_info "Installing Tailscale"
+    curl -fsSL https://tailscale.com/install.sh | sh
+else
+    log_skip "Tailscale"
+fi
+
+# --- NordVPN (official installer) ---
+if ! command -v nordvpn &>/dev/null; then
+    log_info "Installing NordVPN"
+    curl -fsSL https://downloads.nordcdn.com/apps/linux/install.sh | sh
+    sudo usermod -aG nordvpn "$USER"
+else
+    log_skip "NordVPN"
+fi
+
+# --- Signal (official repo) ---
+if ! dpkg -s signal-desktop &>/dev/null; then
+    log_info "Installing Signal"
+    SIGNAL_KEYRING="/usr/share/keyrings/signal-desktop-keyring.gpg"
+    [ -f "$SIGNAL_KEYRING" ] || curl -fsSL https://updates.signal.org/desktop/apt/keys.asc \
+        | sudo gpg --dearmor -o "$SIGNAL_KEYRING"
+    echo "deb [arch=amd64 signed-by=${SIGNAL_KEYRING}] https://updates.signal.org/desktop/apt xenial main" \
+        | sudo tee /etc/apt/sources.list.d/signal-xenial.list > /dev/null
+    sudo apt update
+    sudo apt install -y signal-desktop
+else
+    log_skip "Signal"
+fi
+
+# --- Desktop apps via apt (xss-lock = your screen locker) ---
+DESKTOP_APT=(xss-lock kdeconnect nautilus)
+for pkg in "${DESKTOP_APT[@]}"; do
+    if ! dpkg -s "$pkg" &>/dev/null; then
+        log_info "Installing $pkg"; sudo apt install -y "$pkg"
+    else
+        log_skip "$pkg"
+    fi
+done
+
+# --- Slack & Spotify via snap ---
+for snap_pkg in slack spotify; do
+    if ! snap list "$snap_pkg" &>/dev/null 2>&1; then
+        log_info "Installing $snap_pkg (snap)"; sudo snap install "$snap_pkg"
+    else
+        log_skip "$snap_pkg (snap)"
+    fi
+done
+
+# ==============================================================================
+# Section 19: System Tuning (zram, earlyoom, OOM policy)
+# ==============================================================================
+log_section "System Tuning"
+
+for pkg in zram-tools earlyoom; do
+    if ! dpkg -s "$pkg" &>/dev/null; then
+        log_info "Installing $pkg"; sudo apt install -y "$pkg"
+    else
+        log_skip "$pkg"
+    fi
+done
+
+# zram: ~50% of RAM (~15GB here), zstd compression, high priority
+log_info "Configuring zram (zstd, 50% RAM)"
+sudo tee /etc/default/zramswap > /dev/null <<'EOF'
+# Larger, better-compressed zram swap to absorb memory spikes (e.g. Electron).
+ALGO=zstd
+PERCENT=50
+PRIORITY=100
+EOF
+sudo systemctl restart zramswap.service
+
+# earlyoom: never kill the session spine; target browsers/Electron first
+log_info "Configuring earlyoom (avoid session daemons, prefer browsers)"
+sudo tee /etc/default/earlyoom > /dev/null <<'EOF'
+EARLYOOM_ARGS="-r 3600 -n -m 10 -s 10 --avoid (systemd|dbus|Xorg|gdm|gnome-keyring|pipewire|wireplumber|wezterm|nord|sshd|earlyoom|^i3) --prefer (chrome|slack|spotify|electron|discord|chromium|^code$)"
+EOF
+sudo systemctl restart earlyoom.service
+
+# Disable systemd-oomd (redundant with earlyoom; whole-cgroup kills hurt on i3)
+if systemctl is-enabled systemd-oomd.socket &>/dev/null; then
+    log_info "Disabling redundant systemd-oomd"
+    sudo systemctl disable --now systemd-oomd.socket 2>/dev/null || true
+    sudo systemctl mask systemd-oomd.service 2>/dev/null || true
+else
+    log_skip "systemd-oomd already disabled"
+fi
+
+# ==============================================================================
 # Done
 # ==============================================================================
 log_section "Setup Complete"

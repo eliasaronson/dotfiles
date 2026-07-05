@@ -129,6 +129,10 @@ config.colors = {
 -- window_decorations = "RESIZE"
 config.hide_tab_bar_if_only_one_tab = true
 
+-- Reduce wezterm's X11 resource footprint (pixmap/window accumulation).
+config.front_end = "OpenGL"
+config.enable_kitty_graphics = false
+
 config.window_padding = {
 	left = 0,
 	right = 0,
@@ -140,7 +144,7 @@ config.tab_bar_at_bottom = true
 
 config.check_for_updates = false
 
-config.enable_scroll_bar = true
+config.enable_scroll_bar = false
 
 wezterm.on("trigger-vim-with-scrollback", function(window, pane)
 	-- Retrieve the text from the pane
@@ -187,7 +191,16 @@ config.keys = {
 		mods = "CTRL",
 		action = act.EmitEvent("trigger-vim-with-scrollback"),
 	},
+	{
+		key = "Enter",
+		mods = "SHIFT",
+		action = wezterm.action.SendString("\x1b\r"),
+	},
 }
 
--- and finally, return the configuration to wezterm
+-- Bell handler disabled - using notify-send from Claude Code hooks instead
+-- wezterm.on("bell", function(window, pane)
+-- 	window:toast_notification("Claude Code", "Task completed", nil, 4000)
+-- end)
+
 return config

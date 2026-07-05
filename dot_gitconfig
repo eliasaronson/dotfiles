@@ -48,6 +48,7 @@
 	auc = !git add -u && git commit
 	cip = !git commit && git push
 	rbi = rebase -i
+	cob = checkout -b
 [push]
 	autoSetupRemote = true
 	autoSetupRemote = true

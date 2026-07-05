@@ -1,0 +1,14 @@
+#!/bin/bash
+# Load X resources
+xrdb -merge ~/.Xresources
+
+# Set DPI explicitly for 3200x2000 display (2x scaling)
+xrandr --dpi 192
+
+# Scale GTK applications (2x scaling)
+export GDK_SCALE=1.5
+export GDK_DPI_SCALE=0.75
+
+# Scale Qt applications (2x scaling)
+export QT_AUTO_SCREEN_SCALE_FACTOR=1
+export QT_SCALE_FACTOR=1.5

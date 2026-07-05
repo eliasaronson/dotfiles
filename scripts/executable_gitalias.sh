@@ -1,4 +1,5 @@
 git config --global alias.co checkout
+git config --global --replace-all alias.cob "checkout -b"
 git config --global alias.br branch
 
 git config --global alias.ci commit

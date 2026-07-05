@@ -41,12 +41,6 @@ bindsym XF86AudioMute exec --no-startup-id pactl set-sink-mute @DEFAULT_SINK@ to
 # Optional: Microphone mute toggle
 bindsym XF86AudioMicMute exec --no-startup-id pactl set-source-mute @DEFAULT_SOURCE@ toggle
 
-# Change keyboard light (for keyboards with backlight)
-bindsym XF86Launch3 exec --no-startup-id asusctl led-mode -n
-bindsym XF86Launch2 exec --no-startup-id asusctl led-mode -p
-bindcode 229 exec --no-startup-id asusctl -k low
-bindcode 230 exec --no-startup-id asusctl -k high
-
 bindsym $mod+i exec --no-startup-id "XDG_CURRENT_DESKTOP=GNOME gnome-control-center"
 
 ################################################################################################
@@ -58,12 +52,9 @@ bindsym $mod+Ctrl+m exec $term -e alsamixer
 ################################################################################################
 
 # Start Applications
-bindsym $mod+Ctrl+b exec $term -e bmenu
 bindsym $mod+F2 exec google-chrome-stable
 bindsym $mod+n exec --no-startup-id nautilus
 bindsym $mod+F3 exec gnome-control-center
-bindsym $mod+Shift+F3 exec pcmanfm_pkexec
-bindsym $mod+F5 exec $term -e mocp
 
 bindsym $mod+Shift+d --release exec "killall dunst; exec notify-send 'restart dunst'"
 
@@ -216,36 +207,19 @@ assign [class="google-chrome-stable"] $ws2
 
 # Open specific applications in floating mode
 for_window [title="alsamixer"] floating enable border pixel 1
-for_window [class="calamares"] floating enable border normal
-for_window [class="Clipgrab"] floating enable
 for_window [title="File Transfer*"] floating enable
-for_window [class="fpakman"] floating enable
-for_window [class="Galculator"] floating enable border pixel 1
 for_window [class="GParted"] floating enable border normal
 for_window [title="i3_help"] floating enable sticky enable border normal
-for_window [class="Lightdm-settings"] floating enable
 for_window [class="Lxappearance"] floating enable sticky enable border normal
-for_window [class="Manjaro-hello"] floating enable
-for_window [class="Manjaro Settings Manager"] floating enable border normal
 for_window [title="MuseScore: Play Panel"] floating enable
 for_window [class="Nitrogen"] floating enable sticky enable border normal
 for_window [class="Oblogout"] fullscreen enable
-for_window [class="octopi"] floating enable
-for_window [title="About Pale Moon"] floating enable
-for_window [class="Pamac-manager"] floating enable
 for_window [class="Pavucontrol"] floating enable
 for_window [class="qt5ct"] floating enable sticky enable border normal
-for_window [class="Qtconfig-qt4"] floating enable sticky enable border normal
 for_window [class="Simple-scan"] floating enable border normal
 for_window [class="(?i)System-config-printer.py"] floating enable border normal
-for_window [class="Skype"] floating enable border normal
 for_window [class="Timeset-gui"] floating enable border normal
 for_window [class="(?i)virtualbox"] floating enable border normal
-for_window [class="Xfburn"] floating enable
-for_window [class="Intui"] floating enable
-for_window [class="intui"] floating enable
-for_window [class="gfx"] floating enable
-for_window [class=" live"] floating enable
 for_window [class="Matplotlib"] floating enable
 for_window [class="juliacalc"] move scratchpad
 for_window [class="juliacalc"] resize set 1200 600px
@@ -274,10 +248,11 @@ mode "resize" {
 }
 
 # Autostart applications (cross-platform)
+exec --no-startup-id dunst
 exec --no-startup-id /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
-exec --no-startup-id pamac-tray
 exec --no-startup-id kdeconnect-indicator
-exec_always --no-startup-id alacritty --class "juliacalc" -e julia
+# exec (not exec_always) so it starts once at login, not on every i3 reload
+exec --no-startup-id alacritty --class "juliacalc" -e julia
 
 # Start i3bar/swaybar to display a workspace bar
 bar {
