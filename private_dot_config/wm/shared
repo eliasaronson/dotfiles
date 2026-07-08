@@ -204,6 +204,7 @@ bindcode Mod1+Shift+13 exec --no-startup-id ~/.config/i3/focus-tab.sh 4
 
 # Open applications on specific workspaces
 assign [class="google-chrome-stable"] $ws2
+assign [class="Designer - 3D CAD Software"] $ws3
 
 # Open specific applications in floating mode
 for_window [title="alsamixer"] floating enable border pixel 1
