@@ -1,4 +1,7 @@
 #!/bin/bash
+# NixOS handles this declaratively (services.automatic-timezoned) — skip there.
+[ -e /etc/NIXOS ] && exit 0
+
 # Install the NetworkManager dispatcher that auto-sets the system timezone from
 # IP geolocation whenever a connection comes up. Event-driven (no polling), and
 # only changes when the detected zone actually differs. Needs no extra package

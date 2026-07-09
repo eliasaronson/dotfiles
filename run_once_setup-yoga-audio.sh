@@ -1,4 +1,7 @@
 #!/bin/bash
+# NixOS handles this declaratively (modules/yoga-audio.nix in the flake) — skip there.
+[ -e /etc/NIXOS ] && exit 0
+
 # Lenovo Yoga Pro 9i Gen 9 speaker enablement. The speaker amplifiers are off by
 # default on Linux (firmware bug), so sound needs this I2C initialization at boot
 # and after every resume. Reproduces:

@@ -1,4 +1,6 @@
 #!/bin/bash
+# NixOS handles monitor hotplug declaratively (in the nixos-config flake) — skip there.
+[ -e /etc/NIXOS ] && exit 0
 
 sudo tee /etc/udev/rules.d/95-monitor-hotplug.rules << 'EOF'
 ACTION=="change", SUBSYSTEM=="drm", RUN+="/usr/local/bin/hotplug-monitor"
