@@ -1,0 +1,7 @@
+# Thumb button -> Enter.
+# MX Master 3S emits X11 button 10; MX Master 4 emits button 11.
+"xdotool key Return"
+b:10
+
+"xdotool key Return"
+b:11
