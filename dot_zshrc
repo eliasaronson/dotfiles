@@ -160,3 +160,6 @@ export BUN_INSTALL="$HOME/.bun"
 export PATH="$BUN_INSTALL/bin:$PATH"
 export PATH="$HOME/tools/jadx/bin:$PATH"
 export GPG_TTY=$(tty)
+
+# NixOS rebuild shortcut
+alias nrs='sudo nixos-rebuild switch --flake ~/nixos-config#yoga-test'
