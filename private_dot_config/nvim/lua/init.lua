@@ -9,8 +9,11 @@ require("mason").setup({
 	},
 })
 
+-- On NixOS, LSP servers come from Nix (on PATH), not mason: mason downloads
+-- prebuilt binaries that can't run under NixOS's non-FHS dynamic linker.
+local is_nixos = vim.fn.filereadable("/etc/NIXOS") == 1
 require("mason-lspconfig").setup({
-	ensure_installed = {
+	ensure_installed = is_nixos and {} or {
 		"clangd",
 		"pyright",
 		"lua_ls",
@@ -18,7 +21,7 @@ require("mason-lspconfig").setup({
 		"cmake",
 		"ts_ls",
 	},
-	automatic_installation = true,
+	automatic_installation = not is_nixos,
 })
 
 -- Enhanced LSP capabilities
