@@ -9,7 +9,7 @@ git config --global --replace-all alias.cian "commit --amend --no-verify"
 git config --global --replace-all alias.cip '!git commit && git push'
 
 git config --global alias.st status
-git config --global alias.wc whatchanged
+git config --global alias.wc 'log --raw --no-merges'
 
 git config --global alias.df diff
 
