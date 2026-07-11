@@ -549,6 +549,18 @@ require("nvim-treesitter.configs").setup({
 	},
 })
 
+-- nvim-treesitter's `master` branch does not auto-start the highlighter on
+-- nvim 0.12+, so start core treesitter ourselves for any buffer that has a
+-- parser. The active-check keeps this a no-op where master already attaches
+-- (e.g. older nvim), so it is safe cross-version.
+vim.api.nvim_create_autocmd("FileType", {
+	callback = function(args)
+		if not vim.treesitter.highlighter.active[args.buf] then
+			pcall(vim.treesitter.start, args.buf)
+		end
+	end,
+})
+
 -- Formatter configuration
 require("conform").setup({
 	formatters_by_ft = {
