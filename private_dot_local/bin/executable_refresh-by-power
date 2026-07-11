@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Switch the internal panel (eDP-1) refresh rate by power source:
+#   on AC   -> 165 Hz (smooth)
+#   battery -> 60 Hz  (saves power on the 3200x2000 panel)
+# Must run inside the i3 session (xrandr needs $DISPLAY). Run with `--watch` to
+# react to plug/unplug events; without args it applies once and exits.
+set -u
+
+OUTPUT=eDP-1
+MODE=3200x2000
+AC_RATE=165
+BAT_RATE=60
+
+apply() {
+	# "Discharging" is the only reliable "on battery" signal -- it is true for
+	# both the barrel adapter (ADP0) and USB-C PD charging.
+	local status want cur
+	status=$(cat /sys/class/power_supply/BAT0/status 2>/dev/null)
+	if [ "$status" = "Discharging" ]; then want=$BAT_RATE; else want=$AC_RATE; fi
+
+	# Only if the internal panel is actually active (skip when lid-closed/off).
+	xrandr --listmonitors 2>/dev/null | grep -q "$OUTPUT" || return 0
+
+	# Current rate (integer part of the starred mode). Skip if already correct
+	# so we never cause a needless mode-set flicker on redundant events.
+	cur=$(xrandr 2>/dev/null | awk -v o="$OUTPUT" '
+		$1==o {f=1; next}
+		/^[A-Za-z]/ {f=0}
+		f && /\*/ {for(i=1;i<=NF;i++) if($i ~ /\*/){r=$i; gsub(/[.*+].*/,"",r); print r; exit}}')
+	[ "$cur" = "$want" ] && return 0
+
+	xrandr --output "$OUTPUT" --mode "$MODE" --rate "$want" 2>/dev/null
+}
+
+apply
+
+if [ "${1:-}" = "--watch" ]; then
+	# Re-apply on every power_supply change. apply() is idempotent + debounced,
+	# so the multiple udev lines per event cost nothing.
+	stdbuf -oL udevadm monitor --udev --subsystem-match=power_supply 2>/dev/null |
+		while read -r _; do apply; done
+fi
