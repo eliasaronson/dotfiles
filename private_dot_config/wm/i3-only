@@ -58,7 +58,9 @@ workspace 0 output eDP-1
 
 # X11 autostart
 exec --no-startup-id nm-applet
-exec --no-startup-id clipmenud
+# Start clipmenud only if not already running (on NixOS the systemd user
+# service owns it; on Ubuntu this exec starts it). Guard avoids a double daemon.
+exec --no-startup-id sh -c 'pgrep -x clipmenud >/dev/null || clipmenud'
 # Wallpaper is restored by monitor-setup after the layout settles (avoids a
 # startup race that left the root window black).
 # Autostart disabled (caused Chrome input lag); toggle on demand with $mod+Ctrl+t / $mod+t
