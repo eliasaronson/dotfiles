@@ -64,6 +64,10 @@ exec --no-startup-id nm-applet
 # Start clipmenud only if not already running (on NixOS the systemd user
 # service owns it; on Ubuntu this exec starts it). Guard avoids a double daemon.
 exec --no-startup-id sh -c 'pgrep -x clipmenud >/dev/null || clipmenud'
+# Night light: start the geoclue-located redshift service (auto-follows SF<->Lund
+# like the timezone). Configured in NixOS but graphical-session.target does not
+# auto-pull it on bare i3, so we trigger it here.
+exec --no-startup-id systemctl --user --no-block restart redshift
 # Wallpaper is restored by monitor-setup after the layout settles (avoids a
 # startup race that left the root window black).
 # Autostart disabled (caused Chrome input lag); toggle on demand with $mod+Ctrl+t / $mod+t
