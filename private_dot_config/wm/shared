@@ -252,8 +252,10 @@ mode "resize" {
 exec --no-startup-id dunst
 exec --no-startup-id /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
 exec --no-startup-id kdeconnect-indicator
-# exec (not exec_always) so it starts once at login, not on every i3 reload
-exec --no-startup-id alacritty --class "juliacalc" -e julia
+# exec (not exec_always) so it starts once at login, not on every i3 reload.
+# --always-new-process makes wezterm honor --class (otherwise a new window can
+# attach to an existing wezterm instance and keep the default class).
+exec --no-startup-id wezterm start --always-new-process --class juliacalc -- julia
 
 # Start i3bar/swaybar to display a workspace bar
 bar {
