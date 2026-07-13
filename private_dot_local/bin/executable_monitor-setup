@@ -1,5 +1,31 @@
 #!/bin/bash
 
+# --watch: stay resident inside the i3 session and re-run this script on every
+# monitor hotplug (DRM "change" event). Mirrors refresh-by-power --watch. udev
+# needs no X, but the loop lives in the session so each re-run inherits $DISPLAY.
+# The one-shot logic below is idempotent (state-file compare), so re-runs are
+# cheap. This is what makes dock/undock and cable plug/unplug "just work".
+if [ "${1:-}" = "--watch" ]; then
+    # One watcher only, even across i3 in-place restarts (which re-run exec).
+    exec 8>"/tmp/monitor-setup.watch.lock"
+    flock -n 8 || exit 0
+
+    "$0"        # initial apply on session start
+    stdbuf -oL udevadm monitor --udev --subsystem-match=drm 2>/dev/null |
+        while read -r line; do
+            case "$line" in
+                *" change "*)
+                    # Let the connector settle so xrandr reports the final mode
+                    # list before we read it; FORCE skips the 5s time-debounce
+                    # so a premature run can't swallow the real settled one.
+                    sleep 1.5
+                    MONITOR_SETUP_FORCE=1 "$0"
+                    ;;
+            esac
+        done
+    exit 0
+fi
+
 LOCKFILE="/tmp/monitor-setup.lock"
 STATE_FILE="/tmp/monitor-setup.state"
 
@@ -7,8 +33,11 @@ STATE_FILE="/tmp/monitor-setup.state"
 exec 9>"$LOCKFILE"
 flock -n 9 || exit 0
 
-# Debounce: ignore if last run was less than 5 seconds ago
-if [ -f "$STATE_FILE" ]; then
+# Debounce: ignore if last run was less than 5 seconds ago. Skipped when
+# MONITOR_SETUP_FORCE is set (the hotplug watcher), where a premature run
+# followed by the real settled run must both pass -- the state compare below
+# is the real idempotency guard.
+if [ -z "${MONITOR_SETUP_FORCE:-}" ] && [ -f "$STATE_FILE" ]; then
     LAST_RUN=$(stat -c %Y "$STATE_FILE" 2>/dev/null || echo 0)
     NOW=$(date +%s)
     if [ $((NOW - LAST_RUN)) -lt 5 ]; then

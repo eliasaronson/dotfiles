@@ -41,8 +41,11 @@ exec --no-startup-id xss-lock --transfer-sleep-lock -- /home/$USER/.config/scrip
 # still works without it. Re-enable only if a dock routes a display through NVIDIA.
 # exec --no-startup-id "prime-offload"
 
-# Monitor setup (X11 / xrandr)
-exec --no-startup-id ~/.local/bin/monitor-setup
+# Monitor setup (X11 / xrandr). --watch stays resident and re-applies the
+# layout on every hotplug (dock/undock, cable plug/unplug); it does the initial
+# apply itself. NixOS has no udev rule triggering this, so the watcher is what
+# makes hotplug work here.
+exec --no-startup-id ~/.local/bin/monitor-setup --watch
 
 # Internal panel refresh rate follows power source (165Hz on AC, 60Hz on battery)
 exec --no-startup-id ~/.local/bin/refresh-by-power --watch
