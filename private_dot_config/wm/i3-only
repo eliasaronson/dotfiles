@@ -71,6 +71,9 @@ exec --no-startup-id sh -c 'pgrep -x clipmenud >/dev/null || clipmenud'
 # like the timezone). Configured in NixOS but graphical-session.target does not
 # auto-pull it on bare i3, so we trigger it here.
 exec --no-startup-id systemctl --user --no-block restart redshift
+# Bluetooth headphone media buttons (AVRCP) -> MPRIS players (Spotify/Chrome).
+# mpris-proxy (from bluez) bridges the two; it must be resident before headphones connect.
+exec --no-startup-id mpris-proxy
 # Wallpaper is restored by monitor-setup after the layout settles (avoids a
 # startup race that left the root window black).
 # Autostart disabled (caused Chrome input lag); toggle on demand with $mod+Ctrl+t / $mod+t
