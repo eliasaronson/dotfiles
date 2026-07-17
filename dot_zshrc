@@ -163,3 +163,19 @@ export GPG_TTY=$(tty)
 
 # NixOS rebuild shortcut
 alias nrs='sudo nixos-rebuild switch --flake ~/nixos-config#yoga'
+
+# Security nudge: NixOS never auto-patches, so remind me to refresh the nixpkgs
+# pin when it's >14 days old (kernel/openssl/etc CVEs). Throttled to once/day.
+() {
+  local lock=~/nixos-config/flake.lock
+  [[ -f $lock ]] || return
+  local marker=/tmp/.nixpkgs-reminder-$(date +%Y%m%d)
+  [[ -f $marker ]] && return
+  local lm=$(grep -A6 '"nixpkgs"' "$lock" | grep -o '"lastModified": [0-9]*' | head -1 | grep -o '[0-9]*')
+  [[ -n $lm ]] || return
+  local age=$(( ($(date +%s) - lm) / 86400 ))
+  if (( age > 14 )); then
+    print -P "%F{yellow}⚠ nixpkgs pin is ${age}d old — 'cd ~/nixos-config && nix flake update && nrs' for security patches%f"
+    : > "$marker"
+  fi
+}
