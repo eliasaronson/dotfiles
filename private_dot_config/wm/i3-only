@@ -6,7 +6,7 @@ bindsym $mod+Shift+Escape exec --no-startup-id xkill
 bindsym $mod+Ctrl+x --release exec --no-startup-id xkill
 
 # Clipboard manager (X11)
-bindsym $mod+z exec --no-startup-id clipmenu -i -fn Terminus:size=8 -nb '#002b36' -nf '#839496' -sb '#073642' -sf '#93a1a1'
+bindsym $mod+z exec --no-startup-id copyq menu
 
 # Application launcher (X11)
 bindsym $mod+d exec /home/$USER/.config/scripts/dmenu_recency
@@ -67,9 +67,10 @@ workspace 0 output eDP-1
 
 # X11 autostart
 exec --no-startup-id nm-applet
-# Start clipmenud only if not already running (on NixOS the systemd user
-# service owns it; on Ubuntu this exec starts it). Guard avoids a double daemon.
-exec --no-startup-id sh -c 'pgrep -x clipmenud >/dev/null || clipmenud'
+# Clipboard manager: copyq (owns the clipboard cleanly + handles images, unlike
+# clipmenud which wedged image pastes). Starts the resident server; $mod+z shows
+# the history menu.
+exec --no-startup-id copyq
 # Night light: start the geoclue-located redshift service (auto-follows SF<->Lund
 # like the timezone). Configured in NixOS but graphical-session.target does not
 # auto-pull it on bare i3, so we trigger it here.
