@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Region screenshot -> clipboard. Only copies if maim actually captured a
+# non-empty image, so a cancelled/failed selection (e.g. a site holding pointer
+# lock, or Escape) leaves the clipboard untouched instead of putting a broken
+# 0-byte "image/png" on it — which otherwise hangs any app that tries to paste.
+set -u
+f=$(mktemp --suffix=.png) || exit 1
+trap 'rm -f "$f"' EXIT
+maim -s -b 2 "$f" && [ -s "$f" ] && xclip -selection clipboard -t image/png "$f"
