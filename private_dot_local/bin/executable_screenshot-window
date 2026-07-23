@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Capture the FOCUSED WINDOW to the clipboard. No drag-select, so it works even
+# when a site (e.g. Canva) holds the mouse pointer and breaks maim -s region
+# selection. Same empty-capture guard as screenshot-clip.
+set -u
+tmp=$(mktemp --suffix=.png) || exit 1
+trap 'rm -f "$tmp"' EXIT
+win=$(xdotool getactivewindow) || exit 0
+maim -i "$win" "$tmp" && [ -s "$tmp" ] && xclip -selection clipboard -t image/png "$tmp"

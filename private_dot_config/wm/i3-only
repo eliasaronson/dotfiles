@@ -23,6 +23,9 @@ bindsym $mod+Ctrl+t exec --no-startup-id picom -b --backend glx --vsync
 # Screenshots (X11)
 bindsym Print exec --no-startup-id ~/.local/bin/screenshot-clip
 bindsym --release Shift+Print exec --no-startup-id ~/.local/bin/screenshot-save
+# Focused-window capture to clipboard (no drag-select; works where region-select
+# fails, e.g. Canva/apps that hold the mouse pointer).
+bindsym $mod+Print exec --no-startup-id ~/.local/bin/screenshot-window
 
 # restart i3 inplace (preserves your layout/session)
 bindsym $mod+Shift+r restart
