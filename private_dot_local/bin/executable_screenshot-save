@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Region screenshot -> saved to ~/Pictures/screenshots AND copied to the
+# clipboard. Companion to screenshot-clip: same empty-capture guard, so a
+# cancelled/failed selection leaves no stray file and never wedges the clipboard.
+set -u
+dir="$HOME/Pictures/screenshots"
+mkdir -p "$dir"
+f="$dir/screenshot_$(date +%Y%m%d_%H%M%S).png"
+if maim -s -b 2 "$f" && [ -s "$f" ]; then
+  xclip -selection clipboard -t image/png "$f"
+  notify-send -i "$f" "Screenshot saved" "$f"
+else
+  rm -f "$f"
+fi
