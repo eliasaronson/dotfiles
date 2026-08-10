@@ -129,8 +129,11 @@ config.colors = {
 -- window_decorations = "RESIZE"
 config.hide_tab_bar_if_only_one_tab = true
 
--- Reduce wezterm's X11 resource footprint (pixmap/window accumulation).
-config.front_end = "OpenGL"
+-- Software rendering: after the 2026-08 graphics-driver update, wezterm's GPU
+-- path (OpenGL/WebGpu) hangs the whole GPU on launch and freezes the session
+-- (Chrome survives via its software fallback). A terminal doesn't need GPU accel,
+-- so Software sidesteps it. Revisit "OpenGL" once the Mesa/driver regression is fixed.
+config.front_end = "Software"
 config.enable_kitty_graphics = false
 
 config.window_padding = {
