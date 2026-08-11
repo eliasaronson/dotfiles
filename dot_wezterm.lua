@@ -129,11 +129,20 @@ config.colors = {
 -- window_decorations = "RESIZE"
 config.hide_tab_bar_if_only_one_tab = true
 
--- Software rendering: after the 2026-08 graphics-driver update, wezterm's GPU
--- path (OpenGL/WebGpu) hangs the whole GPU on launch and freezes the session
--- (Chrome survives via its software fallback). A terminal doesn't need GPU accel,
--- so Software sidesteps it. Revisit "OpenGL" once the Mesa/driver regression is fixed.
-config.front_end = "Software"
+-- GPU rendering via Vulkan (WebGpu). History on this Meteor Lake iGPU:
+--   * "OpenGL" -> Mesa iris is broken (llvmpipe) and the EGL path hit the NVIDIA
+--     dGPU, hanging the session on the cross-GPU present. Do not use.
+--   * "WebGpu" earlier tripped the iGPU's PL4 peak-power clamp (throttled the whole
+--     desktop to 100 MHz) -- but the ROOT cause was a 50W PL4 firmware default.
+--     That is now raised to 64W (NixOS raise-pl4 service), and max_fps=30 caps
+--     wezterm's continuous redraw, so WebGpu on the Intel iGPU (LowPower, never the
+--     NVIDIA dGPU) no longer trips it. This keeps rendering off the CPU (Software
+--     was hitting ~1200% CPU under load). Revert to "Software" if the throttle ever
+--     returns (check: /sys/class/drm/card1/gt/gt0/throttle_reason_pl4).
+-- See [[intel-gl-llvmpipe-regression]].
+config.front_end = "WebGpu"
+config.webgpu_power_preference = "LowPower"
+config.max_fps = 30
 config.enable_kitty_graphics = false
 
 config.window_padding = {
