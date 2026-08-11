@@ -16,7 +16,14 @@ apply() {
 	# both the barrel adapter (ADP0) and USB-C PD charging.
 	local status want cur
 	status=$(cat /sys/class/power_supply/BAT0/status 2>/dev/null)
-	if [ "$status" = "Discharging" ]; then want=$BAT_RATE; else want=$AC_RATE; fi
+	# Docked (any external connected) -> 60 on the barely-used laptop panel: saves
+	# scanout power (frees PL4 peak-power headroom) and avoids mixed-refresh jank on
+	# the external. Else power-based: 165 on AC, 60 on battery. monitor-setup applies
+	# the same rule on dock/undock; this keeps it right across power-source changes.
+	# Kept in sync with monitor-setup's internal_rate().
+	if xrandr 2>/dev/null | grep -qE "^(DP|HDMI)[A-Za-z0-9-]* connected"; then want=$BAT_RATE
+	elif [ "$status" = "Discharging" ]; then want=$BAT_RATE
+	else want=$AC_RATE; fi
 
 	# Only if the internal panel is actually active (skip when lid-closed/off).
 	xrandr --listmonitors 2>/dev/null | grep -q "$OUTPUT" || return 0
@@ -35,6 +42,12 @@ apply() {
 apply
 
 if [ "${1:-}" = "--watch" ]; then
+	# One watcher only, even across i3 in-place restarts (which re-run exec).
+	# (matches monitor-setup; the original had no guard so repeated $mod+Shift+r
+	# could stack real watchers -- flock keeps it to one.)
+	exec 8>"/tmp/refresh-by-power.watch.lock"
+	flock -n 8 || exit 0
+
 	# Re-apply on every power_supply change. apply() is idempotent + debounced,
 	# so the multiple udev lines per event cost nothing.
 	stdbuf -oL udevadm monitor --udev --subsystem-match=power_supply 2>/dev/null |
