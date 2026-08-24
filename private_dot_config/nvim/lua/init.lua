@@ -1,3 +1,11 @@
+-- jupyter-vim's python ftplugin references g:jupyter_highlight_cells directly, but
+-- its plugin/ file only sets the default when the python3 provider is present. When
+-- it isn't, every .py file throws E121, which pops the "Press ENTER" prompt and
+-- interrupts the FileType autocmd chain -- so treesitter highlighting never starts
+-- (that was the "no python syntax highlighting" bug). Define it up front.
+vim.g.jupyter_highlight_cells = 0
+vim.g.jupyter_cell_separators = {}
+
 -- Mason for LSP server management
 require("mason").setup({
 	ui = {
@@ -557,7 +565,9 @@ local function ts_ensure(buf)
 		pcall(vim.treesitter.start, buf)
 	end
 end
-vim.api.nvim_create_autocmd("FileType", {
+-- FileType is the normal trigger; BufWinEnter is a backstop so highlighting still
+-- starts if some other FileType handler errors and aborts the chain before us.
+vim.api.nvim_create_autocmd({ "FileType", "BufWinEnter" }, {
 	callback = function(args) ts_ensure(args.buf) end,
 })
 -- Catch the buffer nvim was launched with (its FileType fired during startup,
