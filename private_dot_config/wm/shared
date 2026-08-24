@@ -185,6 +185,19 @@ bindsym $mod+Mod1+8 exec --no-startup-id ~/.local/bin/i3-focus-tab 8
 bindsym $mod+Mod1+9 exec --no-startup-id ~/.local/bin/i3-focus-tab 9
 bindsym $mod+Mod1+0 exec --no-startup-id ~/.local/bin/i3-focus-tab 10
 
+# Same via AltGr (right Alt = Mod5/ISO_Level3_Shift). AltGr shifts the number keys
+# to their level-3 symbols, so match by physical keycode (10-19 = keys 1..0), not keysym.
+bindcode $mod+Mod5+10 exec --no-startup-id ~/.local/bin/i3-focus-tab 1
+bindcode $mod+Mod5+11 exec --no-startup-id ~/.local/bin/i3-focus-tab 2
+bindcode $mod+Mod5+12 exec --no-startup-id ~/.local/bin/i3-focus-tab 3
+bindcode $mod+Mod5+13 exec --no-startup-id ~/.local/bin/i3-focus-tab 4
+bindcode $mod+Mod5+14 exec --no-startup-id ~/.local/bin/i3-focus-tab 5
+bindcode $mod+Mod5+15 exec --no-startup-id ~/.local/bin/i3-focus-tab 6
+bindcode $mod+Mod5+16 exec --no-startup-id ~/.local/bin/i3-focus-tab 7
+bindcode $mod+Mod5+17 exec --no-startup-id ~/.local/bin/i3-focus-tab 8
+bindcode $mod+Mod5+18 exec --no-startup-id ~/.local/bin/i3-focus-tab 9
+bindcode $mod+Mod5+19 exec --no-startup-id ~/.local/bin/i3-focus-tab 10
+
 # Move focused container to workspace
 bindsym $mod+Shift+1 move container to workspace $ws1
 bindsym $mod+Shift+2 move container to workspace $ws2
