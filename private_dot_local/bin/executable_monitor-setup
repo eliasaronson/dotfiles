@@ -159,7 +159,8 @@ else
     done
 fi
 
-# Reapply wallpaper now that the monitor layout is settled. Run on every
-# layout change (boot, dock, hotplug) so nitrogen restores against the final
-# geometry instead of racing this script at startup.
-nitrogen --restore >/dev/null 2>&1 &
+# Reapply wallpaper now that the monitor layout is settled. Run on every layout
+# change (boot, dock, hotplug) so it's set against the final geometry instead of
+# racing this script at startup. feh --bg-fill fills each monitor with the image
+# (replaces nitrogen, removed upstream); --no-fehbg skips rewriting ~/.fehbg.
+feh --no-fehbg --bg-fill "$HOME/Pictures/DSC_0244.jpg" >/dev/null 2>&1 &
