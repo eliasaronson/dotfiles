@@ -145,6 +145,11 @@ config.webgpu_power_preference = "LowPower"
 config.max_fps = 30
 config.enable_kitty_graphics = false
 
+-- Kitty keyboard protocol: report Shift+Enter (and other modified keys) as distinct
+-- keys to apps that opt in (Claude Code, nvim) instead of the old SendString("\x1b\r")
+-- hack. Only active when an app requests it, so other TUIs are unaffected.
+config.enable_kitty_keyboard = true
+
 config.window_padding = {
 	left = 0,
 	right = 0,
@@ -203,11 +208,10 @@ config.keys = {
 		mods = "CTRL",
 		action = act.EmitEvent("trigger-vim-with-scrollback"),
 	},
-	{
-		key = "Enter",
-		mods = "SHIFT",
-		action = wezterm.action.SendString("\x1b\r"),
-	},
+	-- Shift+Enter is now delivered natively via the kitty keyboard protocol
+	-- (enable_kitty_keyboard above). The old SendString("\x1b\r") hack used to
+	-- remap it, but it intercepted the key and blocked the modern CSI-u encoding
+	-- that Claude Code / nvim expect, so it's removed.
 }
 
 -- Bell handler disabled - using notify-send from Claude Code hooks instead
