@@ -145,10 +145,11 @@ config.webgpu_power_preference = "LowPower"
 config.max_fps = 30
 config.enable_kitty_graphics = false
 
--- Kitty keyboard protocol: report Shift+Enter (and other modified keys) as distinct
--- keys to apps that opt in (Claude Code, nvim) instead of the old SendString("\x1b\r")
--- hack. Only active when an app requests it, so other TUIs are unaffected.
-config.enable_kitty_keyboard = true
+-- NOTE: do NOT enable the kitty keyboard protocol (config.enable_kitty_keyboard).
+-- On the us_swe layout it reports shifted symbol keys (+, ?, !, etc.) as
+-- base-key + shift-modifier via CSI-u instead of the composed character, and
+-- apps that don't recompose them (Claude Code) drop the symbol entirely. We get
+-- Shift+Enter via the SendString binding in config.keys below instead.
 
 config.window_padding = {
 	left = 0,
@@ -208,10 +209,15 @@ config.keys = {
 		mods = "CTRL",
 		action = act.EmitEvent("trigger-vim-with-scrollback"),
 	},
-	-- Shift+Enter is now delivered natively via the kitty keyboard protocol
-	-- (enable_kitty_keyboard above). The old SendString("\x1b\r") hack used to
-	-- remap it, but it intercepted the key and blocked the modern CSI-u encoding
-	-- that Claude Code / nvim expect, so it's removed.
+	-- Shift+Enter -> ESC+CR, which Claude Code and nvim interpret as "insert
+	-- newline" rather than submit. Preferred over the kitty keyboard protocol
+	-- because that protocol breaks shifted symbol input on us_swe (see note by
+	-- config.enable_kitty_graphics above).
+	{
+		key = "Enter",
+		mods = "SHIFT",
+		action = act.SendString("\x1b\r"),
+	},
 }
 
 -- Bell handler disabled - using notify-send from Claude Code hooks instead
