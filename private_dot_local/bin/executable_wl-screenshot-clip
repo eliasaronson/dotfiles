@@ -1,0 +1,5 @@
+#!/bin/sh
+# Region screenshot -> clipboard only (Wayland). Mirrors the X11 screenshot-clip
+# (maim -s | xclip). slurp selects a region; grim captures it; wl-copy holds the PNG.
+set -u
+grim -g "$(slurp)" - | wl-copy -t image/png

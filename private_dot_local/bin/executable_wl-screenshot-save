@@ -1,0 +1,12 @@
+#!/bin/sh
+# Region screenshot -> file (+ clipboard + notify). Mirrors the X11 screenshot-save.
+set -u
+dir="$HOME/Pictures/screenshots"
+mkdir -p "$dir"
+f="$dir/screenshot_$(date +%Y%m%d_%H%M%S).png"
+if grim -g "$(slurp)" "$f" && [ -s "$f" ]; then
+  wl-copy -t image/png < "$f"
+  notify-send -i "$f" "Screenshot saved" "$f"
+else
+  rm -f "$f"
+fi

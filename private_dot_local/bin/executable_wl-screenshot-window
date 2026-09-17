@@ -1,0 +1,6 @@
+#!/bin/sh
+# Focused-window screenshot -> clipboard. Mirrors the X11 screenshot-window (maim -i
+# $(xdotool getactivewindow)). Gets the focused node's geometry from the sway tree.
+set -u
+geo=$(swaymsg -t get_tree | jq -r '.. | select(.focused? == true) | .rect | "\(.x),\(.y) \(.width)x\(.height)"' | head -1)
+[ -n "$geo" ] && grim -g "$geo" - | wl-copy -t image/png

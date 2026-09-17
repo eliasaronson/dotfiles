@@ -17,13 +17,13 @@ bindsym $mod+d exec fuzzel
 # Clipboard manager (Wayland — requires cliphist + wl-copy)
 bindsym $mod+z exec cliphist list | fuzzel -d | cliphist decode | wl-copy
 
-# Screenshots (Wayland — requires grim, slurp, wl-copy). Capture ONCE and tee it to
-# both the file and the clipboard; the old form ran grim/slurp twice, so the region
-# selector re-appeared (a second slurp) after each area screenshot.
-# Full screen
-bindsym Print exec grim - | tee ~/Pictures/screenshots/screenshot_$(date +%Y%m%d_%H%M%S).png | wl-copy
-# Area selection
-bindsym Shift+Print exec grim -g "$(slurp)" - | tee ~/Pictures/screenshots/screenshot_$(date +%Y%m%d_%H%M%S).png | wl-copy
+# Screenshots (mirrors the i3 flow, via ~/.local/bin/wl-screenshot-*):
+#   Print       region -> clipboard only
+#   Shift+Print region -> file (+ clipboard + notify)
+#   $mod+Print  focused window -> clipboard
+bindsym Print exec wl-screenshot-clip
+bindsym Shift+Print exec wl-screenshot-save
+bindsym $mod+Print exec wl-screenshot-window
 
 # Reload sway config (Sway doesn't have "restart", only "reload")
 bindsym $mod+Shift+r reload
