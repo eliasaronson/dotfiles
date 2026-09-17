@@ -1,0 +1,20 @@
+# mako notification daemon (Wayland; replaces dunst under sway).
+# The key line is default-timeout — without it mako never auto-dismisses.
+default-timeout=5000
+ignore-timeout=0
+
+# Badwolf-ish theme to match wezterm.
+font=JetBrainsMono Nerd Font 11
+background-color=#1c1b1a
+text-color=#f8f6f2
+border-color=#0a9dff
+border-size=2
+padding=8
+margin=10
+max-visible=5
+anchor=top-right
+
+# Urgent notifications stay until dismissed.
+[urgency=critical]
+default-timeout=0
+border-color=#ff2c4b

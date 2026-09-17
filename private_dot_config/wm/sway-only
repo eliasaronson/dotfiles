@@ -39,14 +39,20 @@ exec mako
 for_window [app_id="chrome-.*"] floating enable
 for_window [title=".*— Indicator.*"] floating enable
 
-# Per-output scaling — Wayland does this natively and crisply (no blur/lag, unlike
-# the X11 xrandr --scale hack). Laptop eDP-1 (~236 DPI) at 2x; home ultrawide
-# HDMI-A-1 (ASUS VG34VQL3A, ~110 DPI) at 1.25 to roughly match the size you liked on
-# X11 — Wayland scales this fractionally without blur, so tune to taste.
+# Per-output scaling. INTEGER scales only, on purpose: at a fractional scale (1.25)
+# apps that don't implement wp-fractional-scale-v1 (Chrome, many others) render at an
+# integer buffer scale and sway upscales them -> blurry on that output. Integer scales
+# are crisp for every app. Conveniently the two land at nearly the same logical size:
+# laptop eDP-1 236 DPI / 2 = 118, ultrawide HDMI-A-1 (ASUS VG34VQL3A) 110 DPI / 1 = 110.
+# If you want the ultrawide bigger, prefer per-app font size over a fractional scale.
 # Multi-monitor dock profiles (office/home/laptop) come via kanshi in step 2.
 output eDP-1 scale 2
-output HDMI-A-1 scale 1.25
+output HDMI-A-1 scale 1
 output * bg ~/Pictures/DSC_0244.jpg fill
+
+# Hidden Julia scratchpad calculator: wezterm --class sets the Wayland app_id (not an
+# X11 class), so sway needs [app_id=...] here where i3 uses [class=...] in shared.
+for_window [app_id="juliacalc"] move scratchpad, resize set 1200 600
 
 # Lock screen: swaylock on demand + swayidle for auto-lock/DPMS (replaces xss-lock).
 bindsym $mod+Shift+x exec swaylock -f -c 1c1b1a
