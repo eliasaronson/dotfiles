@@ -17,7 +17,7 @@ margin=10
 max-visible=5
 anchor=top-right
 
-# Urgent notifications stay until dismissed.
+# Critical notifications (e.g. codex) stay longer and are red, but still auto-dismiss.
 [urgency=critical]
-default-timeout=0
+default-timeout=15000
 border-color=#ff2c4b

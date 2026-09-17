@@ -37,6 +37,16 @@ exec nm-applet --indicator
 # Notification daemon
 exec mako
 
+# Bluetooth headphone media buttons (AVRCP) -> MPRIS players (i3 does this in i3-only).
+exec mpris-proxy
+
+# Clipboard history: this watcher populates what $mod+z (cliphist list) shows.
+exec wl-paste --watch cliphist store
+
+# Night light (Wayland). redshift is X11-only and only tints XWayland here, so use
+# gammastep against the real wlr outputs. Same geoclue2 location + 6500K/3700K as i3.
+exec gammastep -l geoclue2 -t 6500:3700
+
 # Float browser notification popups that bypass mako
 for_window [app_id="chrome-.*"] floating enable
 for_window [title=".*— Indicator.*"] floating enable
