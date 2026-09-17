@@ -1,8 +1,12 @@
 # Sway config - loads shared + sway-specific settings
 set $mod Mod4
 
-# Source login profile for PATH and environment variables
-# (Sway doesn't source ~/.profile like X11 display managers do)
-exec systemctl --user import-environment PATH
+# Push sway's session environment into systemd + the dbus activation environment so
+# user services get the right values. PATH: sway doesn't source ~/.profile. The
+# display vars matter for dbus-activated services like xdg-desktop-portal-gtk: without
+# them it inherits a stale DISPLAY (e.g. :0 from a prior i3 login) and dies with
+# "cannot open display", which breaks the Settings portal -> GTK4/libadwaita dark mode.
+exec systemctl --user import-environment PATH WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP
+exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP
 include ~/.config/wm/shared
 include ~/.config/wm/sway-only

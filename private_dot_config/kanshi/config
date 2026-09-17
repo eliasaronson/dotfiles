@@ -13,7 +13,9 @@ profile home {
     output eDP-1 enable mode 3200x2000 scale 2 position 3440,0
 }
 
-# Laptop only.
+# Laptop only. Slightly smaller than docked (2): you sit closer to the laptop when
+# it's the only screen. 1.75 is fractional -> minor blur, but negligible at 236 DPI.
+# Bump back to 2 if the blur bothers you.
 profile laptop {
-    output eDP-1 enable mode 3200x2000 scale 2 position 0,0
+    output eDP-1 enable mode 3200x2000 scale 1.75 position 0,0
 }
