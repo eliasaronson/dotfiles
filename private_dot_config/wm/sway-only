@@ -49,6 +49,10 @@ exec mako
 # Bluetooth headphone media buttons (AVRCP) -> MPRIS players (i3 does this in i3-only).
 exec mpris-proxy
 
+# flameshot daemon (tray) resident so Ctrl+Print (flameshot gui) is instant instead
+# of cold-starting the whole Qt app + portal each time.
+exec flameshot
+
 # Clipboard history: this watcher populates what $mod+z (cliphist list) shows.
 exec wl-paste --watch cliphist store
 
