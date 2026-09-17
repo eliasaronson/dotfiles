@@ -1,13 +1,15 @@
 # Sway-only config (Wayland-specific)
 # Included by ~/.config/sway/config
 
-# Keyboard layout (Wayland — replaces setxkbmap)
+# Keyboard layout: the custom us_swe layout (US + åäö on AltGr), same as X11.
+# libxkbcommon reads it from the NixOS xkb.extraLayouts patch; no variant needed.
+# (The old `se` + `US_swe` variant doesn't exist -> "failed to compile keymap".)
 input type:keyboard {
-    xkb_layout se
-    xkb_variant US_swe
+    xkb_layout us_swe
 }
-bindsym $mod+Shift+u input type:keyboard xkb_variant ""
-bindsym $mod+u input type:keyboard xkb_variant "US_swe"
+# Toggle plain US <-> us_swe (mirrors the i3 mod+u / mod+Shift+u bindings)
+bindsym $mod+Shift+u input type:keyboard xkb_layout us
+bindsym $mod+u input type:keyboard xkb_layout us_swe
 
 # Application launcher (Wayland)
 bindsym $mod+d exec fuzzel
@@ -37,26 +39,22 @@ exec mako
 for_window [app_id="chrome-.*"] floating enable
 for_window [title=".*— Indicator.*"] floating enable
 
-output DP-7 scale 1.5
-output * bg ~/Downloads/DSC_0244.jpg fill
+# Per-output scaling — Wayland does this natively and crisply (no blur/lag, unlike
+# the X11 xrandr --scale hack). Laptop eDP-1 (~236 DPI) at 2x; home ultrawide
+# HDMI-A-1 (ASUS VG34VQL3A, ~110 DPI) at 1.25 to roughly match the size you liked on
+# X11 — Wayland scales this fractionally without blur, so tune to taste.
+# Multi-monitor dock profiles (office/home/laptop) come via kanshi in step 2.
+output eDP-1 scale 2
+output HDMI-A-1 scale 1.25
+output * bg ~/Pictures/DSC_0244.jpg fill
 
-# Lock screen
-# TODO: Configure swaylock and swayidle
-# Example:
-# bindsym $mod+Shift+x exec swaylock -f
-# bindsym $mod+F12 exec swaylock -f
-# exec swayidle -w \
-#     timeout 300 'swaylock -f' \
-#     timeout 600 'swaymsg "output * power off"' \
-#     resume 'swaymsg "output * power on"' \
-#     before-sleep 'swaylock -f'
+# Lock screen: swaylock on demand + swayidle for auto-lock/DPMS (replaces xss-lock).
+bindsym $mod+Shift+x exec swaylock -f -c 1c1b1a
+exec swayidle -w \
+    timeout 300 'swaylock -f -c 1c1b1a' \
+    timeout 600 'swaymsg "output * power off"' \
+    resume 'swaymsg "output * power on"' \
+    before-sleep 'swaylock -f -c 1c1b1a'
 
-# Wallpaper
-# output * bg /path/to/wallpaper fill
-
-# Workspace output assignments (Wayland output names — adjust to match your hardware)
-# Use `swaymsg -t get_outputs` to list available outputs
-# workspace 1 output DP-3 DP-2 DP-1 HDMI-A-1 eDP-1
-# workspace 2 output DP-3 DP-2 DP-1 HDMI-A-1 eDP-1
-# ...
-# workspace 0 output eDP-1
+# Workspace output assignments come with the kanshi dock profiles (step 2); until
+# then sway auto-places workspaces on whatever outputs are connected.
