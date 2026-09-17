@@ -1,0 +1,71 @@
+/* Badwolf palette (matches wezterm/mako/fuzzel). */
+* {
+  font-family: "JetBrainsMono Nerd Font", monospace;
+  font-size: 12px;
+  min-height: 0;
+}
+
+window#waybar {
+  background: #1c1b1a;      /* blackgravel */
+  color: #f8f6f2;           /* plain */
+  border-top: 2px solid #0a9dff; /* tardis */
+}
+
+#workspaces button {
+  padding: 0 8px;
+  background: transparent;
+  color: #998f84;           /* lightgravel */
+  border: none;
+  border-radius: 0;
+}
+#workspaces button.focused {
+  background: #0a9dff;       /* tardis */
+  color: #141413;
+  font-weight: bold;
+}
+#workspaces button.urgent {
+  background: #ff2c4b;       /* taffy */
+  color: #ffffff;
+}
+#workspaces button:hover {
+  background: #45413b;       /* deepgravel */
+  color: #f8f6f2;
+}
+
+#mode {
+  background: #ffa724;       /* orange */
+  color: #141413;
+  padding: 0 8px;
+  font-weight: bold;
+}
+
+#clock,
+#mpris,
+#idle_inhibitor,
+#pulseaudio,
+#backlight,
+#network,
+#battery,
+#tray {
+  padding: 0 10px;
+  color: #f8f6f2;
+}
+
+#clock { font-weight: bold; }
+#mpris { color: #8cffba; }   /* saltwatertaffy */
+
+#idle_inhibitor.activated {
+  color: #fade3e;            /* dalespale (yellow) — inhibited/active */
+}
+
+#battery.warning  { color: #ffa724; }  /* orange */
+#battery.critical { color: #ff2c4b; }  /* taffy */
+#battery.charging { color: #aeee00; }  /* lime */
+
+#pulseaudio.muted { color: #857f78; }  /* gravel */
+#network.disconnected { color: #857f78; }
+
+#tray menu {
+  background: #1c1b1a;
+  color: #f8f6f2;
+}

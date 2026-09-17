@@ -284,31 +284,8 @@ exec --no-startup-id kdeconnect-indicator
 # attach to an existing wezterm instance and keep the default class).
 exec --no-startup-id wezterm start --always-new-process --class juliacalc -- julia
 
-# Start i3bar/swaybar to display a workspace bar
-bar {
-	status_command i3blocks -c /home/$USER/.config/i3blocks/i3blocks.conf
-	position bottom
-
-	bindsym button4 nop
-	bindsym button5 nop
-	strip_workspace_numbers yes
-
-    colors {
-        background #222D31
-        statusline #F9FAF9
-        separator  #454947
-
-#                      border  backgr. text
-        focused_workspace  #F9FAF9 #16a085 #292F34
-        active_workspace   #595B5B #353836 #FDF6E3
-        inactive_workspace #595B5B #222D31 #EEE8D5
-        binding_mode       #16a085 #2C2C2C #F9FAF9
-        urgent_workspace   #16a085 #FDF6E3 #E5201D
-    }
-}
-
-# hide/unhide status bar
-bindsym $mod+m bar mode toggle
+# Status bar is WM-specific: i3 uses swaybar+i3blocks (moved to i3-only),
+# sway uses waybar (see sway-only). $mod+m toggles it in both.
 
 # Theme colors
 # class                   border  backgr. text    indic.   child_border

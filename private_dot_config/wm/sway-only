@@ -53,6 +53,11 @@ exec mpris-proxy
 # of cold-starting the whole Qt app + portal each time.
 exec flameshot
 
+# Status bar: waybar (sway). i3 uses swaybar+i3blocks (in i3-only). $mod+m toggles it
+# (waybar hides/shows on SIGUSR1). Config: ~/.config/waybar/{config,style.css}.
+exec waybar
+bindsym $mod+m exec killall -q -SIGUSR1 waybar .waybar-wrapped
+
 # Clipboard history: this watcher populates what $mod+z (cliphist list) shows.
 exec wl-paste --watch cliphist store
 
