@@ -21,9 +21,9 @@ bindsym $mod+z exec cliphist list | fuzzel -d | cliphist decode | wl-copy
 #   Print       region -> clipboard only
 #   Shift+Print region -> file (+ clipboard + notify)
 #   $mod+Print  focused window -> clipboard
-bindsym Print exec wl-screenshot-clip
-bindsym Shift+Print exec wl-screenshot-save
-bindsym $mod+Print exec wl-screenshot-window
+bindsym Print exec ~/.local/bin/wl-screenshot-clip
+bindsym Shift+Print exec ~/.local/bin/wl-screenshot-save
+bindsym $mod+Print exec ~/.local/bin/wl-screenshot-window
 
 # Reload sway config (Sway doesn't have "restart", only "reload")
 bindsym $mod+Shift+r reload
