@@ -1,0 +1,7 @@
+#!/bin/sh
+# Region screenshot -> swappy for annotation (arrows/boxes/text/blur). In swappy:
+# Ctrl+C copies to clipboard, Ctrl+S saves to ~/Pictures/screenshots (see swappy
+# config). NOTE: the region select happens on the LIVE screen (no freeze) -- for a
+# frozen-screen capture use flameshot (Ctrl+Print).
+set -u
+grim -g "$(slurp)" - | swappy -f -
