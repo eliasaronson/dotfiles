@@ -1,7 +1,10 @@
 # mako notification daemon (Wayland; replaces dunst under sway).
 # The key line is default-timeout — without it mako never auto-dismisses.
 default-timeout=5000
-ignore-timeout=0
+# Always apply the timeouts below, even when an app requests "never expire"
+# (Claude Code and notify-send do -> they'd otherwise stay up forever, while
+# apps that don't ask, like Signal, already auto-dismissed).
+ignore-timeout=1
 
 # Badwolf-ish theme to match wezterm.
 font=JetBrainsMono Nerd Font 11
