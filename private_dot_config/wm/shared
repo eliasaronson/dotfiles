@@ -275,8 +275,9 @@ mode "resize" {
 }
 
 # Autostart applications (cross-platform)
-exec --no-startup-id dunst
-exec --no-startup-id /usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1
+# dunst (X11 notifications) lives in i3-only; sway uses mako. polkit auth agent is a
+# systemd user service (nixos: systemd.user.services.polkit-gnome-authentication-agent-1,
+# wantedBy graphical-session.target) -- the old /usr/lib exec never existed on NixOS.
 exec --no-startup-id kdeconnect-indicator
 # exec (not exec_always) so it starts once at login, not on every i3 reload.
 # --always-new-process makes wezterm honor --class (otherwise a new window can

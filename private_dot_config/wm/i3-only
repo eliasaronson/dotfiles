@@ -66,6 +66,7 @@ workspace 9 output DP-3 DP-2 DP-1 HDMI-1 eDP-1
 workspace 0 output eDP-1
 
 # X11 autostart
+exec --no-startup-id dunst          # notification daemon (sway uses mako instead)
 exec --no-startup-id nm-applet
 # Clipboard manager: copyq (owns the clipboard cleanly + handles images, unlike
 # clipmenud which wedged image pastes). Starts the resident server; $mod+z shows

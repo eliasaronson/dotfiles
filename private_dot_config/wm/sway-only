@@ -11,6 +11,10 @@ input type:keyboard {
 bindsym $mod+Shift+u input type:keyboard xkb_layout us
 bindsym $mod+u input type:keyboard xkb_layout us_swe
 
+# Cursor: explicit theme + size so it's consistent across the scale-2 laptop and
+# scale-1 ultrawide (sway scales it per-output automatically).
+seat seat0 xcursor_theme Adwaita 24
+
 # Application launcher (Wayland)
 bindsym $mod+d exec fuzzel
 
