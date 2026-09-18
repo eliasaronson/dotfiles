@@ -183,3 +183,7 @@ alias nrs='sudo nixos-rebuild switch --flake ~/nixos-config#yoga'
     : > "$marker"
   fi
 }
+
+# NixOS: uv/python-build-standalone CPython defaults to /etc/ssl/cert.pem, which
+# does not exist here. Point OpenSSL at the NixOS trust store.
+export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
