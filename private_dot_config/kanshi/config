@@ -11,12 +11,14 @@ profile home {
     output eDP-1 enable mode 3200x2000 scale 2 position 3440,0
 }
 
-# Office: Samsung 32" 4K (DP-3) at 1.25 -- ~138 DPI, so native 1x is too small; 1.25
-# lands near the laptop's size and the fractional blur is negligible at 4K. Laptop to
-# its right at 2x (3840/1.25 = 3072 logical wide).
+# Office: Samsung 32" 4K (DP-3). INTEGER scale 1 so everything is crisp -- windowed
+# Chrome blurs at fractional scales (Chromium's Wayland fractional support is still too
+# raw as of 2026-09, even with --enable-features=WaylandFractionalScaleV1: sharp only in
+# fullscreen). 1x is a bit small on 32" 4K -> use Chrome page-zoom (~110-125%) and bump
+# app fonts as needed. Laptop at 2x to its right (3840 logical wide).
 profile office {
-    output DP-3 enable mode 3840x2160 scale 1.25 position 0,0
-    output eDP-1 enable mode 3200x2000 scale 2 position 3072,0
+    output DP-3 enable mode 3840x2160 scale 1 position 0,0
+    output eDP-1 enable mode 3200x2000 scale 2 position 3840,0
 }
 
 # Laptop only. Slightly smaller than docked (2): you sit closer to the laptop when
