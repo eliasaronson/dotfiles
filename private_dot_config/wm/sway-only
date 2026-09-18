@@ -36,9 +36,10 @@ bindsym $mod+z exec cliphist list | fuzzel -d | cliphist decode | wl-copy
 bindsym Print exec ~/.local/bin/wl-screenshot-clip
 bindsym Shift+Print exec ~/.local/bin/wl-screenshot-save
 bindsym $mod+Print exec ~/.local/bin/wl-screenshot-window
-# flameshot: FREEZES the screen, then region-select + annotate + copy/save (the thing
-# you missed). Region selection happens on the frozen image. Uses the screenshot portal.
-bindsym Ctrl+Print exec flameshot gui
+# Ctrl+Print: FREEZE + annotate (flameshot-like). grim grabs the focused monitor
+# instantly (freeze), satty opens it fullscreen to crop/annotate; Ctrl+C copies,
+# Ctrl+S saves. Works on multi-monitor without flameshot's monitor-picker.
+bindsym Ctrl+Print exec ~/.local/bin/wl-screenshot-freeze
 # swappy: region select (live) -> annotate; Ctrl+C copies, Ctrl+S saves.
 bindsym $mod+Ctrl+s exec ~/.local/bin/wl-screenshot-annotate
 
@@ -57,9 +58,6 @@ exec mako
 # Bluetooth headphone media buttons (AVRCP) -> MPRIS players (i3 does this in i3-only).
 exec mpris-proxy
 
-# flameshot daemon (tray) resident so Ctrl+Print (flameshot gui) is instant instead
-# of cold-starting the whole Qt app + portal each time.
-exec flameshot
 
 # Status bar: waybar (sway). i3 uses swaybar+i3blocks (in i3-only). $mod+m toggles it
 # (waybar hides/shows on SIGUSR1). Config: ~/.config/waybar/{config,style.css}.

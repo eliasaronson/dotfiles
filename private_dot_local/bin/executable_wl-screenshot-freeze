@@ -1,0 +1,21 @@
+#!/bin/sh
+# Freeze + annotate screenshot, wlroots-native (flameshot replacement that works on
+# multi-monitor without a monitor-picker). grim captures the FOCUSED monitor instantly
+# -- that's the freeze -- and satty opens the frozen image fullscreen to crop/annotate,
+# then Ctrl+C copies (wl-copy) and Ctrl+S saves to ~/Pictures/screenshots.
+set -u
+dir="$HOME/Pictures/screenshots"
+mkdir -p "$dir"
+
+# Focused output (the monitor the active workspace is on).
+out=$(swaymsg -t get_workspaces 2>/dev/null | python3 -c "
+import sys, json
+try: ws = json.load(sys.stdin)
+except Exception: sys.exit(0)
+print(next((w['output'] for w in ws if w.get('focused')), ''))" 2>/dev/null)
+
+grim ${out:+-o "$out"} - | satty --filename - \
+    --fullscreen \
+    --output-filename "$dir/screenshot_$(date +%Y%m%d_%H%M%S).png" \
+    --copy-command wl-copy \
+    --early-exit
