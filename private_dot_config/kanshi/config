@@ -11,15 +11,13 @@ profile home {
     output eDP-1 enable mode 3200x2000 scale 2 position 3440,0
 }
 
-# Office: Samsung 32" 4K (DP-3) at 1.25 -- ~138 DPI, so integer 1x is too small (shrinks
-# terminals). 1.25 gives a comfortable size everywhere; the only cost is windowed Chrome
-# is slightly soft (Chromium's Wayland fractional scaling is sharp only in fullscreen as
-# of 2026-09, even with --enable-features=WaylandFractionalScaleV1). Revisit when
-# Chromium fractional matures, or use Firefox (146+ does it crisply) for heavy reading.
-# Laptop at 2x to its right (3840/1.25 = 3072 logical wide).
+# Office: Samsung 32" 4K (DP-3) at 1.4. Comfortable terminal size AND crisp Chrome:
+# at 1.4 Chromium renders at 2x buffer and the compositor downsamples (supersampled =
+# sharp), whereas at 1.25 it rendered at 1x + upsampled (blurry). So 1.4 beats 1.25 on
+# both size and sharpness here. Laptop at 2x to its right (3840/1.4 = 2742 logical wide).
 profile office {
-    output DP-3 enable mode 3840x2160 scale 1.25 position 0,0
-    output eDP-1 enable mode 3200x2000 scale 2 position 3072,0
+    output DP-3 enable mode 3840x2160 scale 1.4 position 0,0
+    output eDP-1 enable mode 3200x2000 scale 2 position 2742,0
 }
 
 # Laptop only. Slightly smaller than docked (2): you sit closer to the laptop when
