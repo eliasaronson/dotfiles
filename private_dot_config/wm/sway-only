@@ -15,6 +15,14 @@ bindsym $mod+u input type:keyboard xkb_layout us_swe
 # scale-1 ultrawide (sway scales it per-output automatically).
 seat seat0 xcursor_theme Adwaita 24
 
+# Mouse thumb button -> Enter (mirrors the i3 xbindkeys b:10/b:11 -> Return, now via
+# wtype). --whole-window so it fires over app content, not just window borders.
+# MX Master 3: forward thumb button = BTN_FORWARD (277). sway wants the event-code
+# NAME here (not buttonNNN, which is only for buttons 1-9).
+bindsym --whole-window BTN_FORWARD exec wtype -k Return
+# TODO MX Master 4 (in SF): capture its button with `wev -f wl_pointer:button` and add
+# its code here too.
+
 # Application launcher (Wayland)
 bindsym $mod+d exec fuzzel
 
