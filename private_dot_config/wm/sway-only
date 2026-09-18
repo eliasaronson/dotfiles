@@ -89,6 +89,13 @@ for_window [title=".*— Indicator.*"] floating enable
 # config's defaults (scale 1) and kanshi -- which only re-applies on hotplug -- wouldn't
 # notice, shrinking the external monitor.
 exec_always "pkill -x kanshi; kanshi"
+
+# eDP-1 refresh rate by power/dock (Wayland port of refresh-by-power): laptop-only + AC
+# -> 165Hz, docked or on battery -> 60Hz. Resident --watch (its own flock keeps it to a
+# single instance across reloads). kanshi sets the 60Hz baseline; this bumps to 165 when
+# laptop-only on AC and reacts to power-source + dock/undock changes.
+exec_always ~/.local/bin/wl-refresh-by-power --watch
+
 output * bg ~/Pictures/DSC_0244.jpg fill
 
 # Workspace -> output: docked, 1-9 go to the external and 0 to the laptop; each falls
