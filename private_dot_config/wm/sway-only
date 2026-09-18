@@ -82,7 +82,11 @@ for_window [title=".*— Indicator.*"] floating enable
 # fractional scale blurs apps without wp-fractional-scale-v1 (Chrome etc.); integer is
 # crisp for every app, and laptop 236/2=118 vs ultrawide 110/1=110 land ~same size.
 # Want the ultrawide bigger? Use per-app font size, not a fractional scale.
-exec kanshi
+# exec_always (re-runs on every reload) with a kill-first guard, so `swaymsg reload`
+# ($mod+Shift+r) re-applies the kanshi profile. Otherwise reload resets outputs to the
+# config's defaults (scale 1) and kanshi -- which only re-applies on hotplug -- wouldn't
+# notice, shrinking the external monitor.
+exec_always "pkill -x kanshi; kanshi"
 output * bg ~/Pictures/DSC_0244.jpg fill
 
 # Workspace -> output: docked, 1-9 go to the external and 0 to the laptop; each falls
