@@ -126,6 +126,10 @@ alias crf="claude --resume --fork-session"
 
 eval "$(zoxide init zsh)"
 
+# direnv: auto-load per-project dev shells (.envrc -> `use flake`/`use nix`, cached by
+# nix-direnv; see ~/.config/direnv/direnvrc). Hook must be near the end of zshrc.
+eval "$(direnv hook zsh)"
+
 # >>> juliaup initialize >>>
 
 # !! Contents within this block are managed by juliaup !!

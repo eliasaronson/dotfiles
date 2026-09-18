@@ -1,0 +1,4 @@
+# nix-direnv: fast, cached `use flake` / `use nix` for per-project dev shells.
+# In a project add a .envrc with `use flake` (flake.nix) or `use nix` (shell.nix),
+# then `direnv allow`. The env auto-loads on cd in and unloads on cd out.
+source /run/current-system/sw/share/nix-direnv/direnvrc
