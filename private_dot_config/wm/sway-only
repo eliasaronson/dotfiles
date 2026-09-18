@@ -63,7 +63,9 @@ exec flameshot
 
 # Status bar: waybar (sway). i3 uses swaybar+i3blocks (in i3-only). $mod+m toggles it
 # (waybar hides/shows on SIGUSR1). Config: ~/.config/waybar/{config,style.css}.
-exec waybar
+# exec_always with a kill-first guard so a reload revives it if it died (waybar can
+# crash on output reconfig); plain exec wouldn't restart it until the next login.
+exec_always "killall -q waybar .waybar-wrapped; waybar"
 bindsym $mod+m exec killall -q -SIGUSR1 waybar .waybar-wrapped
 
 # Clipboard history: this watcher populates what $mod+z (cliphist list) shows.
