@@ -1,4 +1,10 @@
-# nix-direnv: fast, cached `use flake` / `use nix` for per-project dev shells.
-# In a project add a .envrc with `use flake` (flake.nix) or `use nix` (shell.nix),
-# then `direnv allow`. The env auto-loads on cd in and unloads on cd out.
-source /run/current-system/sw/share/nix-direnv/direnvrc
+# direnv 2.37 has built-in `use flake` and `use nix`, so per-project dev shells work
+# out of the box: add a .envrc with `use flake` (flake.nix) or `use nix` (shell.nix),
+# then `direnv allow`. direnv caches the exported env and only re-runs when .envrc or
+# its watched files change.
+#
+# nix-direnv would add extra devShell caching, but on NixOS it doesn't reliably link
+# into the system profile without home-manager, so we rely on the built-ins. If it's
+# ever present, source it (harmless when absent):
+nd=/run/current-system/sw/share/nix-direnv/direnvrc
+[ -f "$nd" ] && source "$nd"
