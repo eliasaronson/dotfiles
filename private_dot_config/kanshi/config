@@ -1,16 +1,22 @@
 # kanshi — automatic per-profile output config on hotplug/dock (Wayland replacement
 # for the X11 monitor-setup xrandr logic). kanshi applies the profile whose set of
 # outputs exactly matches what's connected. Positions are in LOGICAL pixels (after
-# scale). Scales are INTEGER on purpose (fractional blurs non-fractional-aware apps
-# like Chrome; see wm/sway-only). Workspace->output assignment lives in wm/sway-only.
-#
-# TODO office: add a 3-monitor profile once docked there — run `swaymsg -t get_outputs`
-# at the office for the real DP output names (they were DP-3/DP-4 under X11).
+# scale). Prefer INTEGER scales (fractional blurs apps without wp-fractional-scale-v1,
+# e.g. Chrome) -- but on high-DPI panels (4K) a fractional scale's blur is minor and
+# worth it for a usable size. Workspace->output assignment lives in wm/sway-only.
 
 # Home: ultrawide (ASUS VG34VQL3A) left at native 1x, laptop to its right at 2x.
 profile home {
     output HDMI-A-1 enable mode 3440x1440 scale 1 position 0,0
     output eDP-1 enable mode 3200x2000 scale 2 position 3440,0
+}
+
+# Office: Samsung 32" 4K (DP-3) at 1.25 -- ~138 DPI, so native 1x is too small; 1.25
+# lands near the laptop's size and the fractional blur is negligible at 4K. Laptop to
+# its right at 2x (3840/1.25 = 3072 logical wide).
+profile office {
+    output DP-3 enable mode 3840x2160 scale 1.25 position 0,0
+    output eDP-1 enable mode 3200x2000 scale 2 position 3072,0
 }
 
 # Laptop only. Slightly smaller than docked (2): you sit closer to the laptop when
