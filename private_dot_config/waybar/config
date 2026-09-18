@@ -4,8 +4,14 @@
   "height": 26,
   "spacing": 6,
   "modules-left": ["sway/workspaces", "sway/mode"],
-  "modules-center": ["clock"],
+  "modules-center": ["custom/othertz", "clock"],
   "modules-right": ["mpris", "idle_inhibitor", "pulseaudio", "backlight", "network", "battery", "tray"],
+
+  "custom/othertz": {
+    "exec": "if [ \"$(timedatectl show -p Timezone --value)\" = \"Europe/Stockholm\" ]; then TZ='America/Los_Angeles' date '+%H:%M %Z'; else TZ='Europe/Stockholm' date '+%H:%M %Z'; fi",
+    "interval": 30,
+    "tooltip": false
+  },
 
   "sway/workspaces": {
     "disable-scroll": false,

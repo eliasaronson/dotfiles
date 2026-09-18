@@ -40,6 +40,7 @@ window#waybar {
 }
 
 #clock,
+#custom-othertz,
 #mpris,
 #idle_inhibitor,
 #pulseaudio,
@@ -52,6 +53,7 @@ window#waybar {
 }
 
 #clock { font-weight: bold; }
+#custom-othertz { color: #f4cf86; }   /* dirtyblonde — the other office's time */
 #mpris { color: #8cffba; }   /* saltwatertaffy */
 
 #idle_inhibitor.activated {
