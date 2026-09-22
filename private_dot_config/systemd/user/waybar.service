@@ -1,0 +1,16 @@
+# waybar for the sway session, supervised by systemd so a crash auto-restarts it
+# (waybar dies occasionally -- tray-menu GTK issues / output hiccups -- and as a plain
+# sway exec it just stayed gone). Started from wm/sway-only; PartOf stops it on logout.
+# Needs WAYLAND_DISPLAY in the systemd env (sway/config imports it); if it starts too
+# early it simply fails once and the restart picks it up.
+[Unit]
+Description=waybar status bar (sway)
+PartOf=graphical-session.target
+After=graphical-session.target
+StartLimitIntervalSec=60
+StartLimitBurst=10
+
+[Service]
+ExecStart=/run/current-system/sw/bin/waybar
+Restart=always
+RestartSec=1
