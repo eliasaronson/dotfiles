@@ -6,7 +6,7 @@ set $mod Mod4
 # display vars matter for dbus-activated services like xdg-desktop-portal-gtk: without
 # them it inherits a stale DISPLAY (e.g. :0 from a prior i3 login) and dies with
 # "cannot open display", which breaks the Settings portal -> GTK4/libadwaita dark mode.
-exec systemctl --user import-environment PATH WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP
-exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP
+exec systemctl --user import-environment PATH WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP SWAYSOCK
+exec dbus-update-activation-environment --systemd WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP SWAYSOCK
 include ~/.config/wm/shared
 include ~/.config/wm/sway-only
