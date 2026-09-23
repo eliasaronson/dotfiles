@@ -126,12 +126,26 @@ config.colors = {
 	},
 }
 
--- Wayland tiling sizing bug (wezterm #7886, open): under sway a new window can come up
--- with its content sized for the default 80x24 instead of the tile, leaving part of the
--- window transparent until a focus/resize event fixes it. A Sway user in that thread
--- found any decoration avoids it ("NONE" triggers it); "RESIZE" keeps no titlebar, so it
--- looks identical under sway (sway draws its own 1px border) but takes the decorated
--- code path. Remove this if upstream fixes the bug.
+-- Wayland fractional scaling. wezterm does NOT implement wp_fractional_scale_v1 (the
+-- string "fractional" does not appear in the binary), so sway falls back to advertising
+-- the legacy INTEGER wl_output.scale -- it rounds DP-3's 1.4 up to 2. wezterm then lays
+-- out every window at dpi 192 while the surface it was given is only 1.4x: a 1352x733
+-- logical tile (1893x1026 physical px) gets 2698x1462 px of content, ~1.43x too much in
+-- each axis, so only ~half the window by area is painted. Verified by A/B: at DP-3 scale
+-- 2.0 the pane px match the tile exactly; at 1.4 they are 1.43x too big.
+--
+-- Fix: tell wezterm the true dpi per output (1.4 * 96 = 134.4). dpi_by_screen keys on the
+-- screen NAME, which on Wayland wezterm only learns via the wlr output manager, hence
+-- enable_zwlr_output_manager. eDP-1 is an integer scale 2.0 and needs no entry.
+-- Remove all of this if wezterm ever gains fractional-scale support.
+config.enable_zwlr_output_manager = true
+config.dpi_by_screen = {
+	["DP-3"] = 134.4, -- office 4K at sway scale 1.4
+}
+
+-- Separate, intermittent Wayland tiling sizing bug (wezterm #7886, open): a decorated
+-- window takes a different code path that a sway user in that thread found avoids it.
+-- "RESIZE" draws no titlebar, so it looks identical under sway.
 config.window_decorations = "RESIZE"
 config.hide_tab_bar_if_only_one_tab = true
 
