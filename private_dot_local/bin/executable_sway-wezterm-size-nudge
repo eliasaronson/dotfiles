@@ -10,9 +10,22 @@
 # Delete this service once wezterm's Wayland backend is fixed (or if we pin an older
 # wezterm, which also avoids the bug).
 
-NUDGE_DELAY=${NUDGE_DELAY:-0.35}
+# Nudge at each of these delays (seconds after the window appears) until one sticks. A
+# nudge that arrives before wezterm has committed its surface gets coalesced away and does
+# nothing, and one on an already-correct window is a net-zero 1px resize, so firing a dense
+# series is harmless and lands the fix as early as wezterm will accept it. Measured: without
+# this the pane sits at 80x24 indefinitely; with it, correct ~0.7-1.5s after launch. The
+# window is already mapped (and mostly unpainted) before the first nudge can stick, so this
+# shortens the wrong-size state but cannot remove it -- only a fixed wezterm can.
+NUDGE_DELAYS=${NUDGE_DELAYS:-"0.02 0.06 0.10 0.15 0.20 0.26 0.32 0.40 0.50 0.65 0.85"}
 # wezterm's default app_id, plus the --class we give the Julia scratchpad.
 PATTERN='^(org\.wezfurlong\.wezterm|juliacalc)$'
+
+nudge() { # $1 = con_id
+	swaymsg "[con_id=$1] resize shrink width 1px" >/dev/null 2>&1
+	sleep 0.05
+	swaymsg "[con_id=$1] resize grow width 1px" >/dev/null 2>&1
+}
 
 swaymsg -t subscribe -m '["window"]' | while read -r ev; do
 	[[ $(jq -r '.change' <<<"$ev") == new ]] || continue
@@ -20,9 +33,11 @@ swaymsg -t subscribe -m '["window"]' | while read -r ev; do
 	[[ $app =~ $PATTERN ]] || continue
 	id=$(jq -r '.container.id' <<<"$ev")
 	(
-		sleep "$NUDGE_DELAY"
-		swaymsg "[con_id=$id] resize shrink width 1px" >/dev/null 2>&1
-		sleep 0.15
-		swaymsg "[con_id=$id] resize grow width 1px" >/dev/null 2>&1
+		prev=0
+		for d in $NUDGE_DELAYS; do
+			sleep "$(awk -v a="$d" -v b="$prev" 'BEGIN{printf "%.3f", a-b}')"
+			nudge "$id"
+			prev=$d
+		done
 	) &
 done
