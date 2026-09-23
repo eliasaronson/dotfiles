@@ -1,0 +1,9 @@
+[Unit]
+Description=Force a resize on new wezterm windows (works around wezterm #7886)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/sway-wezterm-size-nudge
+Restart=always
+RestartSec=2

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Workaround for wezterm's Wayland initial-configure bug (upstream wezterm #7886):
+# a new window ignores the size sway gives it and stays at the default 80x24, so it
+# paints only part of its tile. Any LATER configure with a different size is applied
+# correctly, so we force exactly one: shrink 1px, grow back. Net geometry change zero.
+#
+# Verified 2026-09-23: 5/5 new windows broken without this, 5/5 correct with it.
+# The delay matters -- sway's own `for_window ... resize` fires before wezterm commits
+# its first frame and gets coalesced away, which is why this needs to be event-driven.
+# Delete this service once wezterm's Wayland backend is fixed (or if we pin an older
+# wezterm, which also avoids the bug).
+
+NUDGE_DELAY=${NUDGE_DELAY:-0.35}
+# wezterm's default app_id, plus the --class we give the Julia scratchpad.
+PATTERN='^(org\.wezfurlong\.wezterm|juliacalc)$'
+
+swaymsg -t subscribe -m '["window"]' | while read -r ev; do
+	[[ $(jq -r '.change' <<<"$ev") == new ]] || continue
+	app=$(jq -r '.container.app_id // empty' <<<"$ev")
+	[[ $app =~ $PATTERN ]] || continue
+	id=$(jq -r '.container.id' <<<"$ev")
+	(
+		sleep "$NUDGE_DELAY"
+		swaymsg "[con_id=$id] resize shrink width 1px" >/dev/null 2>&1
+		sleep 0.15
+		swaymsg "[con_id=$id] resize grow width 1px" >/dev/null 2>&1
+	) &
+done

@@ -65,6 +65,10 @@ exec mpris-proxy
 # Restart=always, so a crash comes back in ~1s. exec_always restarts it on each sway
 # reload so config/CSS edits apply.
 exec_always systemctl --user restart waybar
+
+# Works around wezterm's Wayland initial-configure bug (#7886): new windows would
+# otherwise stay at the default 80x24 inside their tile. See the script for details.
+exec_always systemctl --user restart sway-wezterm-size-nudge
 bindsym $mod+m exec killall -q -SIGUSR1 waybar .waybar-wrapped
 
 # Clipboard history: this watcher populates what $mod+z (cliphist list) shows.
