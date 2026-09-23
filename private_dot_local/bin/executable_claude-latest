@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Run the newest Claude Code release, even when nixpkgs lags a few patches behind.
+# nixpkgs' claude-code takes `manifest` as an overridable argument, so we resolve the
+# upstream channel, fetch that version's manifest.zst.json, and override it. That keeps
+# the real Nix build (autoPatchelf + wrapper), unlike curl|sh installs.
+#   claude-latest [args...]          -> upstream "latest" channel
+#   CLAUDE_CHANNEL=stable claude-latest
+#   CLAUDE_VERSION=2.1.280 claude-latest
+set -euo pipefail
+chan="${CLAUDE_CHANNEL:-latest}"
+dist=https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases
+ver="${CLAUDE_VERSION:-$(curl -fsSL "$dist/$chan" | tr -d '[:space:]')}"
+[ -n "$ver" ] || { echo "claude-latest: could not resolve version" >&2; exit 1; }
+
+cache="${XDG_CACHE_HOME:-$HOME/.cache}/claude-latest"; mkdir -p "$cache"
+man="$cache/$ver.json"
+[ -s "$man" ] || curl -fsSL "https://downloads.claude.ai/claude-code-releases/$ver/manifest.zst.json" -o "$man"
+
+out=$(nix build --impure --no-link --print-out-paths --expr "
+  let p = import (builtins.getFlake \"git+file:///home/elias/nixos-config\").inputs.nixpkgs {
+        system = \"x86_64-linux\"; config.allowUnfree = true; };
+  in p.claude-code.override { manifest = builtins.fromJSON (builtins.readFile $man); }
+" 2>/dev/null)
+exec "$out/bin/claude" "$@"
