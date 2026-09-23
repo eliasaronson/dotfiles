@@ -71,3 +71,11 @@
 	smudge = git-lfs smudge -- %f
 	process = git-lfs filter-process
 	required = true
+
+[core]
+	# Big-repo speedups: fsmonitor daemon watches the worktree so `git status` doesn't
+	# rescan it, untrackedCache remembers untracked dirs. Needs git >= 2.37 (have 2.55).
+	fsmonitor = true
+	untrackedCache = true
+[feature]
+	manyFiles = true
