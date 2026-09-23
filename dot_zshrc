@@ -8,7 +8,11 @@ export ZSH="/home/$USER/.oh-my-zsh"
 # load a random theme each time oh-my-zsh is loaded, in which case,
 # to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="agnoster"
+# Prompt is starship (initialised near the end of this file). Keeping the old theme
+# here, commented, for a one-line revert: set ZSH_THEME="agnoster" and drop the
+# starship init below. agnoster cost ~69ms/prompt in big repos; starship ~17ms.
+# ZSH_THEME="agnoster"
+ZSH_THEME=""
 
 # Set list of themes to pick from when loading at random
 # Setting this variable when ZSH_THEME=random will cause zsh to load
@@ -129,6 +133,10 @@ eval "$(zoxide init zsh)"
 # direnv: auto-load per-project dev shells (.envrc -> `use flake`/`use nix`, cached by
 # nix-direnv; see ~/.config/direnv/direnvrc). Hook must be near the end of zshrc.
 eval "$(direnv hook zsh)"
+
+# starship prompt — must come AFTER oh-my-zsh, which would otherwise set PROMPT.
+# Config: ~/.config/starship.toml
+eval "$(starship init zsh)"
 
 # >>> juliaup initialize >>>
 

@@ -1,0 +1,33 @@
+# Minimal prompt: path + git only. Replaces the oh-my-zsh agnoster theme, which forked
+# git 6+ times per prompt (~69ms in a big repo like pydantic-ai); this measures ~17ms.
+#
+# `format` lists every module explicitly ON PURPOSE: anything not listed never runs, so
+# starship skips language/cloud detection (python/node/rust/aws/gcloud/kubernetes...).
+# Adding modules here costs prompt latency -- measure before keeping one.
+"$schema" = 'https://starship.rs/config-schema.json'
+format = "$directory$git_branch$git_status$character"
+add_newline = false
+command_timeout = 500
+
+[directory]
+# Inside a repo show <repo>/<subpath> instead of the whole ~/... path, so a deep tree
+# doesn't push the typing area to the right edge (keeps a single-line prompt usable).
+truncate_to_repo = true
+truncation_length = 4
+truncation_symbol = ""        # repo root shows as "pydantic-ai", not "…/pydantic-ai"
+style = "bold cyan"
+
+[git_branch]
+format = "on [$symbol$branch]($style) "
+symbol = " "
+style = "bold purple"
+
+[git_status]
+format = '([$all_status$ahead_behind]($style) )'
+style = "bold yellow"
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+# vi-mode plugin is enabled in .zshrc; show a different char in normal mode.
+vimcmd_symbol = "[❮](bold yellow)"
