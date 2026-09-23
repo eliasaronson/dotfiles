@@ -75,6 +75,10 @@ DISABLE_AUTO_UPDATE="true"
 plugins=(git history-substring-search vi-mode colored-man-pages zsh-autosuggestions sudo web-search zsh-syntax-highlighting fzf fzf-tab extract clipfile)
 fpath+=${ZSH_CUSTOM:-${ZSH:-~/.oh-my-zsh}/custom}/plugins/zsh-completions/src
 
+# Skip compaudit's permission scan of every completion dir (~16ms/start). Our fpath is
+# nix-store + oh-my-zsh paths, not world-writable, so the check buys nothing here.
+ZSH_DISABLE_COMPFIX="true"
+
 source $ZSH/oh-my-zsh.sh
 
 # User configuration
@@ -128,15 +132,26 @@ alias crf="claude --resume --fork-session"
 # export GDK_DPI_SCALE=0.5
 # export QT_SCALE_FACTOR=2
 
-eval "$(zoxide init zsh)"
-
-# direnv: auto-load per-project dev shells (.envrc -> `use flake`/`use nix`, cached by
-# nix-direnv; see ~/.config/direnv/direnvrc). Hook must be near the end of zshrc.
-eval "$(direnv hook zsh)"
-
+# Shell-init snippets (zoxide/direnv/starship) are cached instead of `eval "$(tool
+# init)"`, which forks a process per tool on EVERY shell start (~10ms each). The cache
+# is regenerated automatically when the tool's binary is newer than it -- so a nixpkgs
+# update (new store path) refreshes it by itself. Delete ~/.cache/zsh to force.
+_zcache() {  # _zcache <name> <command> [args...]
+  local f=${XDG_CACHE_HOME:-$HOME/.cache}/zsh/$1.zsh
+  local bin=${commands[$2]}
+  [[ -n $bin ]] || return
+  if [[ ! -s $f || $bin -nt $f ]]; then
+    mkdir -p ${f:h}
+    "${@:2}" >| $f 2>/dev/null
+  fi
+  source $f
+}
+_zcache zoxide   zoxide init zsh
+# direnv: auto-load per-project dev shells (.envrc -> `use flake`/`use nix`).
+_zcache direnv   direnv hook zsh
 # starship prompt — must come AFTER oh-my-zsh, which would otherwise set PROMPT.
 # Config: ~/.config/starship.toml
-eval "$(starship init zsh)"
+_zcache starship starship init zsh
 
 # >>> juliaup initialize >>>
 

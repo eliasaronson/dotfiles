@@ -18,7 +18,7 @@ truncation_symbol = ""        # repo root shows as "pydantic-ai", not "…/pydan
 style = "bold cyan"
 
 [git_branch]
-format = "on [$symbol$branch]($style) "
+format = "[$symbol$branch]($style) "
 symbol = " "
 style = "bold purple"
 

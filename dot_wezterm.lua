@@ -126,7 +126,13 @@ config.colors = {
 	},
 }
 
--- window_decorations = "RESIZE"
+-- Wayland tiling sizing bug (wezterm #7886, open): under sway a new window can come up
+-- with its content sized for the default 80x24 instead of the tile, leaving part of the
+-- window transparent until a focus/resize event fixes it. A Sway user in that thread
+-- found any decoration avoids it ("NONE" triggers it); "RESIZE" keeps no titlebar, so it
+-- looks identical under sway (sway draws its own 1px border) but takes the decorated
+-- code path. Remove this if upstream fixes the bug.
+config.window_decorations = "RESIZE"
 config.hide_tab_bar_if_only_one_tab = true
 
 -- GPU rendering via Vulkan (WebGpu). History on this Meteor Lake iGPU:
