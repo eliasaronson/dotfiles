@@ -121,11 +121,20 @@ for_window [app_id="juliacalc"] move scratchpad, resize set 1200 600
 
 # Lock screen: swaylock on demand + swayidle for auto-lock/DPMS (replaces xss-lock).
 bindsym $mod+Shift+x exec swaylock -f -c 1c1b1a
+# before-sleep/after-resume: DISABLE outputs before suspend and re-enable after. On
+# every resume wlroots destroys + re-creates eDP-1 ("Failed to disable CRTC"); when
+# the old CRTC was 269 (after an undock) the re-created output could not be
+# configured -> black screen (2026-09-18/22/24). Releasing the CRTC cleanly before
+# suspend leaves nothing stale for that rebuild. -w makes swayidle wait for the
+# before-sleep commands before letting the suspend proceed. kanshi re-applies its
+# profile on the head re-creation anyway; the explicit enable is the belt to its braces.
 exec swayidle -w \
     timeout 300 'swaylock -f -c 1c1b1a' \
     timeout 600 'swaymsg "output * power off"' \
     resume 'swaymsg "output * power on"' \
-    before-sleep 'swaylock -f -c 1c1b1a'
+    before-sleep 'swaylock -f -c 1c1b1a' \
+    before-sleep 'swaymsg "output * disable"' \
+    after-resume 'swaymsg "output * enable"'
 
 # Workspace output assignments come with the kanshi dock profiles (step 2); until
 # then sway auto-places workspaces on whatever outputs are connected.
