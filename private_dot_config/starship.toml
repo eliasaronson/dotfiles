@@ -7,7 +7,11 @@
 "$schema" = 'https://starship.rs/config-schema.json'
 format = "$directory$git_branch$git_status$character"
 add_newline = false
-command_timeout = 500
+# 500ms was too tight: under heavy load (e.g. a parallel build hogging the CPU) the first
+# git call in a repo also pays for starting git fsmonitor--daemon, which blew past it and
+# printed a timeout warning. 1s still keeps the prompt snappy -- warm git status here is
+# 40-60ms -- while surviving a cold start on a loaded machine.
+command_timeout = 1000
 
 [directory]
 # Inside a repo show <repo>/<subpath> instead of the whole ~/... path, so a deep tree
