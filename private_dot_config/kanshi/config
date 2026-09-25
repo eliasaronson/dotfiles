@@ -1,9 +1,14 @@
 # kanshi — automatic per-profile output config on hotplug/dock (Wayland replacement
 # for the X11 monitor-setup xrandr logic). kanshi applies the profile whose set of
 # outputs exactly matches what's connected. Positions are in LOGICAL pixels (after
-# scale). Prefer INTEGER scales (fractional blurs apps without wp-fractional-scale-v1,
-# e.g. Chrome) -- but on high-DPI panels (4K) a fractional scale's blur is minor and
-# worth it for a usable size. Workspace->output assignment lives in wm/sway-only.
+# scale). Apps WITHOUT wp-fractional-scale-v1 blur at fractional scales, because the
+# compositor resamples their integer-scaled buffer -- wezterm is one (verified 2026-09-23:
+# the protocol name is absent from its binary). Chrome is NOT one any more: a WAYLAND_DEBUG
+# trace at scale 1.75 on 2026-09-25 shows it binding wp_fractional_scale_manager_v1,
+# receiving preferred_scale(210) = 1.75, and setting a viewport source of 1598px for a
+# 913-logical window (913 x 1.75 = 1598, i.e. pixel-exact, no resampling). No flag needed;
+# --enable-features=WaylandFractionalScaleV1 changes nothing because it is already on.
+# Workspace->output assignment lives in wm/sway-only.
 
 # Home: ultrawide (ASUS VG34VQL3A) left at native 1x, laptop to its right at 2x.
 profile home {
@@ -21,8 +26,11 @@ profile office {
 }
 
 # Laptop only. Slightly smaller than docked (2): you sit closer to the laptop when
-# it's the only screen. 1.75 is fractional -> minor blur, but negligible at 236 DPI.
-# Bump back to 2 if the blur bothers you.
+# it's the only screen. 1.75 is fractional, but per the header Chrome handles that
+# natively now, so it should be crisp. If Chrome looks soft here, suspect a STALE
+# instance rather than the scale: Chrome does not always re-rasterize when the output
+# scale changes under it, so one started before a profile switch stays at the old
+# rasterization until restarted. Bump to 2 if you want to rule scaling out entirely.
 profile laptop {
     output eDP-1 enable mode 3200x2000@60Hz scale 1.75 position 0,0
 }
