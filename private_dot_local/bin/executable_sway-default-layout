@@ -1,0 +1,172 @@
+#!/usr/bin/env python3
+"""Build the default terminal layout on sway workspaces.
+
+Target shape per workspace (what ws 1 and 3 are always set up as by hand):
+
+    workspace (splith)
+    |-- tabbed  : 2 terminals   <- left half
+    +-- splitv  : 1 terminal    <- right half
+
+sway has no equivalent of i3's `append_layout` (verified on sway 1.12:
+"Unknown/invalid command"), so there is no layout file to restore -- the layout has to
+be rebuilt by spawning windows and issuing split/layout commands in the right order.
+
+Build order matters. `layout` and `split` act on the FOCUSED container's parent, so:
+  1. spawn T1, T2            -> workspace(splith): [T1, T2]
+  2. split T1 vertically     -> a nested container wraps T1 (needs a sibling to exist,
+                                which is why T2 is spawned first -- splitting a lone
+                                window just changes the workspace's own layout)
+  3. set that container tabbed
+  4. spawn T3 with T1 focused-> joins the tabbed container as its second tab
+  5. split T2 vertically     -> wraps T2 in the splitv container on the right
+
+Idempotent: a workspace that already has windows is skipped, so this is safe to re-run
+and safe to bind to a key. Called with no arguments it does workspaces 1 and 3.
+
+Usage:  sway-default-layout [workspace ...]
+        TERM_CMD=foot sway-default-layout 2
+"""
+
+import json
+import os
+import subprocess
+import sys
+import time
+
+TERM_CMD = os.environ.get("TERM_CMD", "wezterm")
+DEFAULT_WORKSPACES = ["1", "3"]
+SPAWN_TIMEOUT = 15.0  # wezterm can be slow to map when the machine is loaded
+
+
+def swaymsg(*args):
+    """Run a sway command and return the parsed reply."""
+    out = subprocess.run(
+        ["swaymsg", "-t", "command", "--", *args],
+        capture_output=True,
+        text=True,
+    )
+    try:
+        return json.loads(out.stdout)
+    except json.JSONDecodeError:
+        return [{"success": False, "error": out.stderr.strip() or out.stdout.strip()}]
+
+
+def cmd(command):
+    """Run one sway command string, raising on failure."""
+    replies = swaymsg(command)
+    for r in replies:
+        if not r.get("success", True):
+            raise RuntimeError(f"sway rejected {command!r}: {r.get('error')}")
+    return replies
+
+
+def tree():
+    return json.loads(subprocess.run(["swaymsg", "-t", "get_tree"], capture_output=True, text=True).stdout)
+
+
+def workspace_node(name):
+    def walk(node):
+        for child in node.get("nodes", []) + node.get("floating_nodes", []):
+            if child.get("type") == "workspace" and child.get("name") == name:
+                return child
+            found = walk(child)
+            if found:
+                return found
+        return None
+
+    return walk(tree())
+
+
+def leaves(node):
+    """Every window (leaf con) under node."""
+    found = []
+    for child in node.get("nodes", []) + node.get("floating_nodes", []):
+        if not child.get("nodes") and not child.get("floating_nodes"):
+            found.append(child)
+        else:
+            found.extend(leaves(child))
+    return found
+
+
+def spawn_terminal(ws_name):
+    """Spawn one terminal on ws_name and return its con id once sway has mapped it."""
+    before = {leaf["id"] for leaf in leaves(workspace_node(ws_name) or {})}
+    cmd(f"exec {TERM_CMD}")
+    deadline = time.monotonic() + SPAWN_TIMEOUT
+    while time.monotonic() < deadline:
+        ws = workspace_node(ws_name)
+        if ws:
+            new = {leaf["id"] for leaf in leaves(ws)} - before
+            if new:
+                con_id = new.pop()
+                # Let the window settle before issuing layout commands against it.
+                time.sleep(0.25)
+                return con_id
+        time.sleep(0.05)
+    raise RuntimeError(f"timed out waiting {SPAWN_TIMEOUT}s for a {TERM_CMD} window on ws {ws_name}")
+
+
+def describe(ws):
+    """One-line shape summary, e.g. 'splith[tabbed(2), splitv(1)]'."""
+    def shape(node):
+        kids = node.get("nodes", [])
+        if not kids:
+            return "win"
+        inner = ", ".join(shape(k) for k in kids)
+        if all(not k.get("nodes") for k in kids):
+            return f"{node.get('layout')}({len(kids)})"
+        return f"{node.get('layout')}[{inner}]"
+
+    return shape(ws)
+
+
+def build(ws_name):
+    ws = workspace_node(ws_name)
+    if ws and leaves(ws):
+        print(f"ws {ws_name}: already has {len(leaves(ws))} window(s) — left alone")
+        return True
+
+    cmd(f"workspace {ws_name}")
+    t1 = spawn_terminal(ws_name)
+    t2 = spawn_terminal(ws_name)
+
+    cmd(f"[con_id={t1}] focus")
+    cmd("split vertical")       # wrap T1 in its own container
+    cmd("layout tabbed")        # ...and make that container tabbed
+    spawn_terminal(ws_name)     # T3 lands in the tabbed container next to T1
+
+    cmd(f"[con_id={t2}] focus")
+    cmd("split vertical")       # wrap T2 in the splitv container on the right
+
+    cmd(f"[con_id={t1}] focus")  # leave focus on the left pane, as if freshly opened
+
+    got = describe(workspace_node(ws_name))
+    want = "splith[tabbed(2), splitv(1)]"
+    if got == want:
+        print(f"ws {ws_name}: {got}")
+        return True
+    print(f"ws {ws_name}: UNEXPECTED shape {got} (wanted {want})", file=sys.stderr)
+    return False
+
+
+def main():
+    targets = sys.argv[1:] or DEFAULT_WORKSPACES
+    start = next((w["name"] for w in json.loads(
+        subprocess.run(["swaymsg", "-t", "get_workspaces"], capture_output=True, text=True).stdout
+    ) if w["focused"]), None)
+
+    ok = True
+    for ws_name in targets:
+        try:
+            ok &= build(ws_name)
+        except RuntimeError as exc:
+            print(f"ws {ws_name}: {exc}", file=sys.stderr)
+            ok = False
+
+    if start:  # don't leave the user on whichever workspace we built last
+        cmd(f"workspace {start}")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

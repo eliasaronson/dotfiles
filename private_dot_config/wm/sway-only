@@ -69,6 +69,12 @@ exec_always systemctl --user restart waybar
 # Works around wezterm's Wayland initial-configure bug (#7886): new windows would
 # otherwise stay at the default 80x24 inside their tile. See the script for details.
 exec_always systemctl --user restart sway-wezterm-size-nudge
+
+# Default terminal layout on ws 1 and 3 (tabbed pair on the left, single pane on the
+# right). sway has no `append_layout`, so the script rebuilds it with IPC commands. It
+# skips any workspace that already has windows, and `exec` (not exec_always) means a sway
+# reload will not re-run it. Run it by hand any time: sway-default-layout [ws ...]
+exec ~/.local/bin/sway-default-layout
 bindsym $mod+m exec killall -q -SIGUSR1 waybar .waybar-wrapped
 
 # Clipboard history: this watcher populates what $mod+z (cliphist list) shows.
