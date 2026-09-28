@@ -73,9 +73,17 @@
 	required = true
 
 [core]
-	# Big-repo speedups: fsmonitor daemon watches the worktree so `git status` doesn't
-	# rescan it, untrackedCache remembers untracked dirs. Needs git >= 2.37 (have 2.55).
-	fsmonitor = true
+	# untrackedCache remembers which untracked dirs changed, so `git status` skips
+	# rescanning them. Needs git >= 2.37 (have 2.55).
+	#
+	# core.fsmonitor is deliberately NOT enabled. It was tried 2026-09-23 and removed
+	# 2026-09-28: it made the FIRST git command in each repo pay for starting
+	# `git fsmonitor--daemon`, and bought nothing back. Measured (idle machine):
+	#            andon-os (10k tracked / 117k worktree)  pydantic-ai   chezmoi
+	#   fsmonitor on   cold 316ms / warm 12ms            44ms / 8ms    18ms / 7ms
+	#   fsmonitor off  cold  18ms / warm 13ms            10ms / 7ms     7ms / 6ms
+	# Slower cold, identical warm. Under load the cold case reached ~12s, which is what
+	# made starship's prompt print "command timed out" whenever I cd'd into a fresh repo.
 	untrackedCache = true
 [feature]
 	manyFiles = true
