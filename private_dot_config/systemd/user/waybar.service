@@ -3,10 +3,20 @@
 # sway exec it just stayed gone). Started from wm/sway-only; PartOf stops it on logout.
 # Needs WAYLAND_DISPLAY in the systemd env (sway/config imports it); if it starts too
 # early it simply fails once and the restart picks it up.
+#
+# Wants/After xdg-desktop-portal: waybar queries the portal at startup (for the
+# light/dark colour scheme) and EXITS if that D-Bus activation times out. On 2026-09-29
+# earlyoom killed the portal and waybar then crash-looped 270 times, each attempt dying
+# ~25s in with "Error calling StartServiceByName for org.freedesktop.portal.Desktop:
+# Timeout was reached" -- and `systemctl restart waybar` on a sway reload could not fix
+# it, because nothing was bringing the portal back. Wants= makes systemd start the portal
+# whenever waybar starts, so the pair recovers on its own.
 [Unit]
 Description=waybar status bar (sway)
 PartOf=graphical-session.target
 After=graphical-session.target
+Wants=xdg-desktop-portal.service
+After=xdg-desktop-portal.service
 StartLimitIntervalSec=60
 StartLimitBurst=10
 
