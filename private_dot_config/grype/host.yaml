@@ -9,12 +9,58 @@
 #   * CPE collision     -> the CVE is for a different project that shares the name. The
 #                          give-away is an impossible "FIXED-IN" (ranger showed Apache
 #                          Ranger's 2.9.0; the file manager has only had 1.9.x).
+#   * version artefact  -> the fix IS installed, but CPE string comparison orders the
+#                          versions wrongly (see dnsmasq below).
+#   * wrong platform    -> the bug is real but Windows/macOS-only.
 #   * not reachable     -> real bug, but nothing here exercises the affected code path.
 #   * waiting on a pin  -> real and reachable; prefer `nix flake update && nrs` over an
 #                          ignore. Only park it here if the update is blocked.
 # Say which one it is in the reason, like the CI config does.
 #
-# Empty for now: ranger was dropped from systemPackages instead (7 of 13 findings), and the
-# rest -- openvpn, dnsmasq, libpcap, libmicrohttpd -- are left visible on purpose until
-# they have been looked at individually.
-ignore: []
+# ranger is not listed: it was dropped from systemPackages instead (it accounted for 7 of
+# the original 13 high/critical findings, all of them Apache Ranger collisions).
+# libpcap and libmicrohttpd are deliberately NOT listed: nixpkgs master already has 1.10.7
+# and 1.0.10, so `nix flake update && nrs` is the correct fix and they should stay visible
+# until it runs.
+ignore:
+  # --- dnsmasq: version artefact ---------------------------------------------------------
+  # 2.93test9 is a PRE-release of 2.93, so the installed 2.93 final already contains the
+  # fix -- but CPE comparison sorts "2.93" before "2.93test9" and flags it. Pulled in by
+  # networkmanager and blueman, not installed directly.
+  - vulnerability: CVE-2026-6507
+    reason: >-
+      Version artefact: fixed-in 2.93test9 is a prerelease of the installed 2.93 final, so
+      the fix is already present; CPE string ordering puts 2.93 below 2.93test9.
+    package:
+      name: dnsmasq
+      version: "2.93"
+
+  # --- openvpn: Windows-only, plus an unreachable DoS ------------------------------------
+  # Present only as a dependency of nordvpn-cli; nordvpn runs Technology: NORDLYNX
+  # (WireGuard), so the OpenVPN code path is never executed. REVISIT IF YOU EVER RUN
+  # `nordvpn set technology openvpn` -- nordvpnd runs as root, so anything it spawns is
+  # privileged. Also note every affected range ends at "2.6.22 and 2.7.6" while the
+  # installed build is 2.6.23, i.e. one patch past the 2.6-branch ceiling; grype only
+  # flags it because the recorded fix version is 2.7.7, from the other release branch.
+  - vulnerability: CVE-2026-84256
+    reason: >-
+      Wrong platform: Windows-only (argument parsing via a crafted certificate subject,
+      needs an authenticated user); this is Linux.
+    package:
+      name: openvpn
+      version: 2.6.23
+  - vulnerability: CVE-2026-81738
+    reason: >-
+      Wrong platform: Windows-only (tap-windows6 driver, DOMAIN-SEARCH out-of-bounds
+      write); this is Linux.
+    package:
+      name: openvpn
+      version: 2.6.23
+  - vulnerability: CVE-2026-84732
+    reason: >-
+      Not reachable: remote unauthenticated DoS (ACK packet-ID retransmission timeout
+      overflow), not RCE, and openvpn never runs because nordvpn uses NordLynx/WireGuard.
+      Affected range ends at 2.6.22; installed is 2.6.23.
+    package:
+      name: openvpn
+      version: 2.6.23
