@@ -1,0 +1,12 @@
+[Unit]
+Description=Weekly CVE scan of the NixOS system closure
+
+[Timer]
+OnCalendar=Mon 10:00
+# Catch up after a week with the laptop off, and jitter so it never lands exactly on the
+# hour alongside everything else.
+Persistent=true
+RandomizedDelaySec=30min
+
+[Install]
+WantedBy=timers.target

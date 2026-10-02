@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# Weekly CVE scan of this machine's NixOS system closure.
+#
+# Mirrors the nix-image-scan job in ~/Documents/evals5 (.github/workflows/deploy-api.yml),
+# because a Nix closure has no dpkg/apk database for a normal image scanner to read:
+#   sbomnix /run/current-system  ->  CycloneDX SBOM of the closure
+#   grype --only-fixed           ->  only CVEs that HAVE a fix, which is the whole point
+#
+# Why not vulnix (the obvious NixOS tool): it reports anything NVD associates with a
+# version string, with no notion of whether a fix exists. Measured 2026-10-02 on this
+# closure: vulnix 527 entries / 333 CVEs vs this recipe 33 findings, 13 at high/critical.
+#
+# CAVEAT worth remembering when reading a report: there is no Nix-specific advisory feed,
+# so every match comes from grype's `nvd:cpe` source -- CPE string matching, which collides
+# across projects that share a name. Tell-tale sign is a nonsense "FIXED-IN": ranger's
+# "2.9.0" was Apache Ranger, dnsmasq's "2.93test9" and libmicrohttpd's "2025-09-16" are NVD
+# data artefacts. Treat the report as a short list to eyeball, not a list of real bugs.
+#
+# Tools come from the system's own nixpkgs pin (~/nixos-config), so they match the closure
+# being scanned and need no second nixpkgs instance. grype keeps a ~3 GB vulnerability DB
+# in ~/.cache/grype and refreshes it itself.
+#
+# Ignores live in ~/.config/grype/host.yaml, pinned to a version like the CI config, so an
+# entry expires by itself once nixpkgs ships a new build.
+
+set -uo pipefail
+
+FLAKE=${FLAKE:-$HOME/nixos-config}
+REPORT_DIR=${REPORT_DIR:-$HOME/.local/state/host-vuln-scan}
+CONFIG=${CONFIG:-$HOME/.config/grype/host.yaml}
+KEEP=8  # reports to retain (~2 months of weekly runs)
+
+mkdir -p "$REPORT_DIR"
+stamp=$(date +%Y-%m-%d)
+report="$REPORT_DIR/$stamp.txt"
+
+note() { printf '%s\n' "$*" | tee -a "$report"; }
+
+: > "$report"
+note "host-vuln-scan $stamp  (closure: $(readlink -f /run/current-system))"
+
+tools=$(nix build --no-link --print-out-paths \
+  "$FLAKE#nixosConfigurations.yoga.pkgs.sbomnix" \
+  "$FLAKE#nixosConfigurations.yoga.pkgs.grype" 2>>"$report") || {
+  note "FAILED: could not build sbomnix/grype from $FLAKE"
+  exit 1
+}
+export PATH="$(echo "$tools" | sed 's|$|/bin|' | paste -sd:):$PATH"
+
+sbom=$(mktemp --suffix=.cdx.json)
+trap 'rm -f "$sbom"' EXIT
+
+if ! sbomnix /run/current-system --cdx "$sbom" >>"$report" 2>&1; then
+	note "FAILED: sbomnix could not build an SBOM"
+	exit 1
+fi
+note "SBOM components: $(jq '.components | length' "$sbom")"
+
+cfg=()
+[[ -f $CONFIG ]] && cfg=(-c "$CONFIG")
+
+# Full table for the report, then count what crosses the threshold. --only-fixed is the
+# noise filter; severity is judged here rather than with --fail-on so that the report
+# always lists everything while only high/critical triggers a notification.
+grype "sbom:$sbom" --only-fixed "${cfg[@]}" -o table >>"$report" 2>&1
+high=$(grype "sbom:$sbom" --only-fixed "${cfg[@]}" -o json 2>/dev/null |
+	jq '[.matches[] | select(.vulnerability.severity == "Critical" or .vulnerability.severity == "High")] | length')
+high=${high:-0}
+
+note ""
+note "high/critical (after ignores): $high"
+
+if ((high > 0)); then
+	pkgs=$(grype "sbom:$sbom" --only-fixed "${cfg[@]}" -o json 2>/dev/null |
+		jq -r '[.matches[] | select(.vulnerability.severity=="Critical" or .vulnerability.severity=="High")
+		        | .artifact.name] | unique | join(", ")')
+	notify-send -u normal -i security-high \
+		"$high fixable high/critical CVEs in the system closure" \
+		"${pkgs}
+
+Report: $report
+Usually means the nixpkgs pin is behind; check for CPE false positives before acting." \
+		2>/dev/null || true
+fi
+
+# Keep the directory from growing forever.
+ls -1t "$REPORT_DIR"/*.txt 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
+
+exit 0

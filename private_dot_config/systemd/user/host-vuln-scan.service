@@ -1,0 +1,15 @@
+[Unit]
+Description=CVE scan of the NixOS system closure (sbomnix + grype)
+Documentation=man:grype(1)
+# Needs the network for grype's vulnerability DB refresh.
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/host-vuln-scan
+# The SBOM walk is CPU-heavy over ~2000 store paths; stay out of the way of real work.
+Nice=15
+IOSchedulingClass=idle
+# A stuck DB download should not hang around until the next run.
+TimeoutStartSec=30min

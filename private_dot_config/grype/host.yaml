@@ -1,0 +1,20 @@
+# Ignore list for host-vuln-scan (~/.local/bin/host-vuln-scan).
+#
+# Same convention as evals5's .github/grype/nix-api.yaml: pin each entry to the installed
+# VERSION rather than a date, so the ignore expires by itself as soon as nixpkgs ships a
+# different build and the finding needs a fresh look.
+#
+# Every finding on a Nix closure comes from grype's nvd:cpe source (CPE string matching),
+# so before adding an entry decide which kind it is:
+#   * CPE collision     -> the CVE is for a different project that shares the name. The
+#                          give-away is an impossible "FIXED-IN" (ranger showed Apache
+#                          Ranger's 2.9.0; the file manager has only had 1.9.x).
+#   * not reachable     -> real bug, but nothing here exercises the affected code path.
+#   * waiting on a pin  -> real and reachable; prefer `nix flake update && nrs` over an
+#                          ignore. Only park it here if the update is blocked.
+# Say which one it is in the reason, like the CI config does.
+#
+# Empty for now: ranger was dropped from systemPackages instead (7 of 13 findings), and the
+# rest -- openvpn, dnsmasq, libpcap, libmicrohttpd -- are left visible on purpose until
+# they have been looked at individually.
+ignore: []
