@@ -152,7 +152,11 @@ config.hide_tab_bar_if_only_one_tab = true
 config.front_end = "WebGpu"
 config.webgpu_power_preference = "LowPower"
 config.max_fps = 30
-config.enable_kitty_graphics = false
+-- Inline images in the terminal (mdcat, presenterm, chafa). This was `false`, captured
+-- from a live Ubuntu-era edit in July rather than chosen; wezterm's own default is true
+-- and nothing here needed it off. Note this is the GRAPHICS protocol -- unrelated to the
+-- kitty KEYBOARD protocol, which stays off for the reason in the note below.
+config.enable_kitty_graphics = true
 
 -- NOTE: do NOT enable the kitty keyboard protocol (config.enable_kitty_keyboard).
 -- On the us_swe layout it reports shifted symbol keys (+, ?, !, etc.) as
@@ -220,8 +224,8 @@ config.keys = {
 	},
 	-- Shift+Enter -> ESC+CR, which Claude Code and nvim interpret as "insert
 	-- newline" rather than submit. Preferred over the kitty keyboard protocol
-	-- because that protocol breaks shifted symbol input on us_swe (see note by
-	-- config.enable_kitty_graphics above).
+	-- because that protocol breaks shifted symbol input on us_swe (see the
+	-- config.enable_kitty_keyboard note above).
 	{
 		key = "Enter",
 		mods = "SHIFT",
