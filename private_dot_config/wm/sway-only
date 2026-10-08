@@ -20,8 +20,12 @@ seat seat0 xcursor_theme Adwaita 24
 # MX Master 3: forward thumb button = BTN_FORWARD (277). sway wants the event-code
 # NAME here (not buttonNNN, which is only for buttons 1-9).
 bindsym --whole-window BTN_FORWARD exec wtype -k Return
-# TODO MX Master 4 (in SF): capture its button with `wev -f wl_pointer:button` and add
-# its code here too.
+# MX Master 4: the same physical thumb button reports BTN_BACK (278), not BTN_FORWARD.
+# Scoped with --input-device so only this mouse loses its back button -- the Keychron and
+# the touchpad keep theirs. Device id from `swaymsg -t get_inputs`. Captured 2026-10-08
+# with `wev -f wl_pointer:button`.
+bindsym --input-device=1133:45122:Logitech_MX_Master_4_for_Mac --whole-window BTN_BACK \
+	exec wtype -k Return
 
 # Application launcher (Wayland)
 bindsym $mod+d exec fuzzel
