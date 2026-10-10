@@ -138,9 +138,29 @@ config.colors = {
 -- Fix: the wezterm package is pinned to a pre-regression build in ~/nixos-config.
 config.hide_tab_bar_if_only_one_tab = true
 
--- GPU rendering via Vulkan (WebGpu). History on this Meteor Lake iGPU:
---   * "OpenGL" -> Mesa iris is broken (llvmpipe) and the EGL path hit the NVIDIA
---     dGPU, hanging the session on the cross-GPU present. Do not use.
+-- GPU rendering. Currently OpenGL; WebGpu leaks badly on this build (see below).
+--
+-- 2026-10-10: switched WebGpu -> OpenGL because wezterm's wgpu path never polls the
+-- device, and wgpu only frees dropped resources on poll, so every frame's buffers and
+-- bind groups pile up forever. Measured here after 5 days: 174 open DRM fds in one
+-- wezterm process holding 2.4 GB resident GPU memory (of 3.9 GB total i915 objects),
+-- which is most of this machine's unexplained Shmem. Upstream PR #8184 fixes it with
+-- three lines (poll the device after present, reporter saw 10 GB -> flat 440 MB) but it
+-- was CLOSED UNMERGED, so no release has it -- nixpkgs master is on the same
+-- 0-unstable-2026-09-17 rev we run. OpenGL is not affected by that bug.
+--
+-- The two reasons OpenGL was originally rejected were BOTH re-verified as gone today:
+--   * Mesa iris falling back to llvmpipe -> fixed by Mesa 26.2.2 on 2026-09-17;
+--     glxinfo now reports "Accelerated: yes", Mesa Intel(R) Arc(tm) Graphics (MTL).
+--   * the EGL path selecting the NVIDIA dGPU and hanging on the cross-GPU present ->
+--     eglinfo now shows the DEVICE platform picking NVIDIA but the WAYLAND platform
+--     (what wezterm uses) picking "Mesa Project" / Intel Arc, because sway is pinned to
+--     the Intel node. If that ever regresses, pin it explicitly by launching wezterm
+--     with __EGL_VENDOR_LIBRARY_FILENAMES=/run/opengl-driver/share/glvnd/egl_vendor.d/50_mesa.json
+--
+-- To go back to Vulkan: set front_end = "WebGpu" (and expect the leak until #8184 or an
+-- equivalent lands; a wezterm restart reclaims the memory).
+-- History on this Meteor Lake iGPU:
 --   * "WebGpu" earlier tripped the iGPU's PL4 peak-power clamp (throttled the whole
 --     desktop to 100 MHz) -- but the ROOT cause was a 50W PL4 firmware default.
 --     That is now raised to 64W (NixOS raise-pl4 service), and max_fps=30 caps
@@ -149,7 +169,8 @@ config.hide_tab_bar_if_only_one_tab = true
 --     was hitting ~1200% CPU under load). Revert to "Software" if the throttle ever
 --     returns (check: /sys/class/drm/card1/gt/gt0/throttle_reason_pl4).
 -- See [[intel-gl-llvmpipe-regression]].
-config.front_end = "WebGpu"
+config.front_end = "OpenGL"
+-- Kept for the WebGpu path, harmless under OpenGL.
 config.webgpu_power_preference = "LowPower"
 config.max_fps = 30
 -- Inline images in the terminal (mdcat, presenterm, chafa). This was `false`, captured
