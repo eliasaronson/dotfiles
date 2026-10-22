@@ -28,10 +28,15 @@ set -uo pipefail
 FLAKE=${FLAKE:-$HOME/nixos-config}
 REPORT_DIR=${REPORT_DIR:-$HOME/.local/state/host-vuln-scan}
 CONFIG=${CONFIG:-$HOME/.config/grype/host.yaml}
-KEEP=8  # reports to retain (~2 months of weekly runs)
+KEEP=16  # reports to retain. Raised from 8 when reports became timestamped rather
+         # than dated: ad-hoc runs now create their own files instead of replacing
+         # the day's, so 8 no longer bought ~2 months of weekly history.
 
 mkdir -p "$REPORT_DIR"
-stamp=$(date +%Y-%m-%d)
+# Timestamp, not just a date: a second run on the same day used to OVERWRITE the first.
+# That bit on 2026-10-22 -- a failed run silently destroyed that morning's 311-finding
+# baseline, so there was nothing to diff the post-update scan against.
+stamp=$(date +%Y-%m-%d_%H%M%S)
 report="$REPORT_DIR/$stamp.txt"
 
 note() { printf '%s\n' "$*" | tee -a "$report"; }

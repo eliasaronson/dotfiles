@@ -22,6 +22,12 @@
 # libpcap and libmicrohttpd are deliberately NOT listed: nixpkgs master already has 1.10.7
 # and 1.0.10, so `nix flake update && nrs` is the correct fix and they should stay visible
 # until it runs.
+# curl CVE-2026-92392 is deliberately NOT ignored. HTTP/2 upload use-after-free, High,
+# affects 8.12.0-8.22.0, fixed in 8.23.0. Installed is 8.22.0 -- genuinely affected. As of
+# 2026-10-22 nixpkgs has 8.22.0 on unstable AND on master, so there is nothing to pull
+# forward; this is "waiting on a pin" and must stay visible until a fixed curl lands.
+# Re-check with: nix eval --raw github:NixOS/nixpkgs/master#curl.version
+
 ignore:
   # --- dnsmasq: version artefact ---------------------------------------------------------
   # 2.93test9 is a PRE-release of 2.93, so the installed 2.93 final already contains the
