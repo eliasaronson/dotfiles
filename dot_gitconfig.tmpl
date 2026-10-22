@@ -8,6 +8,11 @@
 [core]
 	autocrlf = input
     pager = delta
+    # Global hooks dir, so the gitleaks pre-commit scan applies to every repo without
+    # per-repo installation. NOTE: this SHADOWS .git/hooks everywhere -- the hook script
+    # chains to the repo's own pre-commit afterwards so the pre-commit framework used by
+    # the andon-os repos keeps working.
+    hooksPath = ~/.config/git/hooks
 [interactive]
     diffFilter = delta --color-only
 [delta]

@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Global pre-commit hook: installed to ~/.config/git/hooks/pre-commit and selected
+# by core.hooksPath in ~/.gitconfig, so every repo gets it with no per-repo setup.
+set -uo pipefail
+
+# ---- 1. scan the staged diff for secrets ----
+# NOTE: `gitleaks protect --staged` is what most docs and blog posts still show.
+# It is BROKEN in 8.30.x -- `protect` forwards --staged to `git diff --no-index`,
+# which errors out. `gitleaks git --staged` is the working form (checked 2026-10-22).
+# --redact keeps any match out of terminal scrollback: a real hit is a live
+# credential and printing it is how it ends up in a log or a screenshot.
+if command -v gitleaks >/dev/null 2>&1; then
+  if ! gitleaks git --staged --no-banner --redact; then
+    cat >&2 <<'MSG'
+
+gitleaks found a possible secret in the staged changes -- commit aborted.
+
+  false positive -> add the FINGERPRINT (not the value) to .gitleaksignore
+  real secret    -> unstage it, then ROTATE it; assume it is already burned
+  override       -> git commit --no-verify
+
+MSG
+    exit 1
+  fi
+fi
+
+# ---- 2. chain to the repository's own hook ----
+# core.hooksPath shadows .git/hooks completely, which would silently disable the
+# pre-commit framework that the andon-os repos are configured for. Resolve via
+# --git-dir, NOT `git rev-parse --git-path hooks`: that now resolves back to this
+# file and would recurse.
+repo_hook="$(git rev-parse --git-dir)/hooks/pre-commit"
+if [ -x "$repo_hook" ]; then
+  exec "$repo_hook" "$@"
+fi
