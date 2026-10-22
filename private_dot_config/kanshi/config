@@ -16,12 +16,19 @@ profile home {
     output eDP-1 enable mode 3200x2000@60Hz scale 2 position 3440,0
 }
 
-# Office: Samsung 32" 4K (DP-3) at 1.4. Comfortable terminal size AND crisp Chrome:
+# Office: Dell S2725QC 4K (DP-3) at 1.4. Comfortable terminal size AND crisp Chrome:
 # at 1.4 Chromium renders at 2x buffer and the compositor downsamples (supersampled =
 # sharp), whereas at 1.25 it rendered at 1x + upsampled (blurry). So 1.4 beats 1.25 on
 # both size and sharpness here. Laptop at 2x to its right (3840/1.4 = 2742 logical wide).
+#
+# PIN THE REFRESH RATE. This panel advertises 3840x2160 at both 60Hz and 120Hz, and with
+# no rate given sway picks the highest -- 4K120 needs more link bandwidth than this cable
+# /USB-C lane allocation carries, so the monitor gets a signal it cannot lock and reports
+# "no input" while sway happily believes the output is active. Diagnosed 2026-10-22 after
+# a monitor swap: the profile matches on output NAME, so it silently carried over from the
+# old Samsung (60Hz max) to this Dell, and only surfaced on the next reboot.
 profile office {
-    output DP-3 enable mode 3840x2160 scale 1.4 position 0,0
+    output DP-3 enable mode 3840x2160@60Hz scale 1.4 position 0,0
     output eDP-1 enable mode 3200x2000@60Hz scale 2 position 2742,0
 }
 
