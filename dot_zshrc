@@ -231,6 +231,13 @@ export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 # environment for the life of one command. Raise/lower FLY_TOKEN_TTL to taste.
 : ${FLY_TOKEN_TTL:=900}
 fly() {
+  # The Cobra-generated completion (_flyctl) shells out to `flyctl __complete ...`
+  # on every tab-press, which hits this function and fired a polkit prompt each
+  # time -- constantly, with fzf-tab/zsh-autosuggestions. Completion needs no
+  # credential, so hand those straight to the binary.
+  case $1 in
+    __complete|__completeNoDesc|completion) command flyctl "$@"; return ;;
+  esac
   zmodload -F zsh/datetime p:EPOCHSECONDS 2>/dev/null
   if [[ -z $_fly_tok || $(( EPOCHSECONDS - ${_fly_tok_at:-0} )) -gt $FLY_TOKEN_TTL ]]; then
     _fly_tok=$(systemd-creds decrypt --name=fly-token ~/.config/fly/token.cred -) || return
@@ -258,6 +265,9 @@ _modal_load() {
   fi
 }
 modal() {
+  case $1 in
+    --help|-h) command modal "$@"; return ;;
+  esac
   if _modal_load; then
     MODAL_TOKEN_ID=$_modal_id MODAL_TOKEN_SECRET=$_modal_secret command modal "$@"
   else
