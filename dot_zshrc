@@ -280,3 +280,13 @@ modal-env() {
 if [[ ! -S ${SSH_AUTH_SOCK:-} && -S ${XDG_RUNTIME_DIR:-/run/user/$UID}/gcr/ssh ]]; then
   export SSH_AUTH_SOCK=${XDG_RUNTIME_DIR:-/run/user/$UID}/gcr/ssh
 fi
+
+# sops: the age identity that decrypts secrets/*.yaml for EDITING lives TPM-sealed
+# at ~/.config/sops/age/keys.cred (the plaintext ~/.config/sops/age/keys.txt is
+# gone). sops runs SOPS_AGE_KEY_CMD and reads the identity from its stdout, so no
+# wrapper function and no env var holding the key is needed. Activation is
+# unaffected: per .sops.yaml the HOST key (from /etc/ssh/ssh_host_ed25519_key)
+# decrypts at switch time, not this one -- so nixos-rebuild never needs it.
+if [[ -r ~/.config/sops/age/keys.cred ]]; then
+  export SOPS_AGE_KEY_CMD="systemd-creds decrypt --name=sops-age $HOME/.config/sops/age/keys.cred -"
+fi
