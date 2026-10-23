@@ -270,3 +270,13 @@ modal-env() {
   export MODAL_TOKEN_ID=$_modal_id MODAL_TOKEN_SECRET=$_modal_secret
   print -u2 "modal-env: exported (TTL ${MODAL_TOKEN_TTL}s)"
 }
+
+# gcr-ssh-agent (from services.gnome.gnome-keyring) is the real SSH agent on this
+# box, at $XDG_RUNTIME_DIR/gcr/ssh. wezterm exports SSH_AUTH_SOCK pointing at its
+# own agent socket, which goes stale when that mux process dies -- leaving a dead
+# path that makes ssh silently fall back to reading the key file on every call.
+# Only override when the inherited socket is actually gone, so a live wezterm
+# agent (or forwarded agent over ssh) still wins.
+if [[ ! -S ${SSH_AUTH_SOCK:-} && -S ${XDG_RUNTIME_DIR:-/run/user/$UID}/gcr/ssh ]]; then
+  export SSH_AUTH_SOCK=${XDG_RUNTIME_DIR:-/run/user/$UID}/gcr/ssh
+fi

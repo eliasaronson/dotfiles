@@ -1,0 +1,4 @@
+# Add a key to the running agent the first time it is used, so a passphrase is
+# entered once per session rather than on every git push/pull.
+Host *
+    AddKeysToAgent yes
