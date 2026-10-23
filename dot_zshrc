@@ -210,3 +210,21 @@ alias nrs='sudo nixos-rebuild switch --flake ~/nixos-config#yoga'
 # NixOS: uv/python-build-standalone CPython defaults to /etc/ssl/cert.pem, which
 # does not exist here. Point OpenSSL at the NixOS trust store.
 export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+
+# Fly.io: the API token is TPM-sealed with systemd-creds at ~/.config/fly/token.cred
+# instead of sitting in plaintext in ~/.fly/config.yml (which held an account-wide
+# token reaching every production app). flyctl prefers FLY_ACCESS_TOKEN over the
+# config file and never writes an env-supplied token back to disk: every write in
+# internal/config/tokens.go is guarded on t.FromFile(), which only ParseFromFile
+# sets. Decrypt goes through polkit (io.systemd.credentials.decrypt defaults to
+# auth_admin_keep), so it prompts like sudo and then stays quiet for a few minutes.
+# The org token expires 2027-01-21 and will NOT renew itself -- the discharge
+# refresh is in-memory only for env-supplied tokens. Re-mint and re-seal with:
+#   fly tokens create org -o andon-labs -x 2160h
+#   systemd-creds encrypt --with-key=tpm2 --name=fly-token - ~/.config/fly/token.cred
+fly() {
+  local tok
+  tok=$(systemd-creds decrypt --name=fly-token ~/.config/fly/token.cred -) || return
+  FLY_ACCESS_TOKEN=$tok command flyctl "$@"
+}
+flyctl() { fly "$@" }
