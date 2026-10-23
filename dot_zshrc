@@ -239,3 +239,34 @@ fly() {
   FLY_ACCESS_TOKEN=$_fly_tok command flyctl "$@"
 }
 flyctl() { fly "$@" }
+
+# Modal: same TPM-sealed pattern as fly() above. Two values (id + secret) are sealed
+# as two lines in one credential; MODAL_TOKEN_ID/_SECRET beat ~/.modal.toml in
+# modal's config.py, so the plaintext ~/.modal.toml can go away entirely.
+# Falls through to plain `modal` when the credential is absent, so this is safe to
+# ship before the credential exists.
+: ${MODAL_TOKEN_TTL:=900}
+_modal_load() {
+  zmodload -F zsh/datetime p:EPOCHSECONDS 2>/dev/null
+  [[ -r ~/.config/modal/token.cred ]] || return 1
+  if [[ -z $_modal_id || $(( EPOCHSECONDS - ${_modal_at:-0} )) -gt $MODAL_TOKEN_TTL ]]; then
+    local out
+    out=$(systemd-creds decrypt --name=modal-token ~/.config/modal/token.cred -) || return 1
+    _modal_id=${out%%$'\n'*}
+    _modal_secret=${out#*$'\n'}
+    _modal_at=$EPOCHSECONDS
+  fi
+}
+modal() {
+  if _modal_load; then
+    MODAL_TOKEN_ID=$_modal_id MODAL_TOKEN_SECRET=$_modal_secret command modal "$@"
+  else
+    command modal "$@"
+  fi
+}
+# For `import modal` in Python: exports into THIS shell for the TTL window.
+modal-env() {
+  _modal_load || { print -u2 "modal-env: no sealed credential"; return 1 }
+  export MODAL_TOKEN_ID=$_modal_id MODAL_TOKEN_SECRET=$_modal_secret
+  print -u2 "modal-env: exported (TTL ${MODAL_TOKEN_TTL}s)"
+}
