@@ -222,9 +222,20 @@ export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 # refresh is in-memory only for env-supplied tokens. Re-mint and re-seal with:
 #   fly tokens create org -o andon-labs -x 2160h
 #   systemd-creds encrypt --with-key=tpm2 --name=fly-token - ~/.config/fly/token.cred
+# polkit's auth_admin_keep does NOT help here: it retains the grant against a
+# unix-process subject, and every systemd-creds run is a new process, so the
+# cached authorization never matches and you re-authenticate every single call
+# (`pkcheck --list-temp` shows the dead husks). So cache in the shell instead,
+# sudo-style. _fly_tok is a plain shell variable, not exported, so it is not in
+# any child's /proc/<pid>/environ -- only in this shell's memory, and in flyctl's
+# environment for the life of one command. Raise/lower FLY_TOKEN_TTL to taste.
+: ${FLY_TOKEN_TTL:=900}
 fly() {
-  local tok
-  tok=$(systemd-creds decrypt --name=fly-token ~/.config/fly/token.cred -) || return
-  FLY_ACCESS_TOKEN=$tok command flyctl "$@"
+  zmodload -F zsh/datetime p:EPOCHSECONDS 2>/dev/null
+  if [[ -z $_fly_tok || $(( EPOCHSECONDS - ${_fly_tok_at:-0} )) -gt $FLY_TOKEN_TTL ]]; then
+    _fly_tok=$(systemd-creds decrypt --name=fly-token ~/.config/fly/token.cred -) || return
+    _fly_tok_at=$EPOCHSECONDS
+  fi
+  FLY_ACCESS_TOKEN=$_fly_tok command flyctl "$@"
 }
 flyctl() { fly "$@" }
