@@ -138,18 +138,27 @@ note "SBOM components: $components"
 # ---- which CVEs does nixpkgs already patch in place? ---------------------------------
 # nixpkgs fixes plenty of CVEs with a patch and no version bump, so every version
 # comparison reports them forever. Measured 2026-10-23: 7 of 25 findings were avahi 0.8
-# CVEs that avahi's own derivation patches. host-vuln-patches reads the patch filenames
-# out of the build closure's .drv files; see its header for the one-way caveat.
+# CVEs that avahi's own derivation patches.
+#
+# The source is the SBOM sbomnix just wrote: it records this in CycloneDX's standard
+# pedigree.patches[].resolves[] field, so the data is free. grype simply does not honour
+# that field -- handed an SBOM marking CVE-2026-55199 resolved, it reports it anyway.
+#
+# Set PATCH_DRV_SUPPLEMENT=1 to additionally grep the build closure's .drv text. That
+# finds a handful pedigree misses (gdk-pixbuf here) but costs ~16s and most of its extras
+# are build-only packages absent from the SBOM, so filtering them achieves nothing.
 echo '{"packages":[]}' > "$patchf"
 if [[ ${PATCH_FILTER:-1} == 1 && -x $HOME/.local/bin/host-vuln-patches ]]; then
-  if ! "$HOME/.local/bin/host-vuln-patches" \
-        --drv-closure "$FLAKE#nixosConfigurations.${HOSTATTR:-yoga}.config.system.build.toplevel" \
-        > "$patchf" 2>>"$report"; then
+  pargs=(--from-sbom "$sbom")
+  [[ ${PATCH_DRV_SUPPLEMENT:-0} == 1 ]] && pargs+=(--drv-closure \
+    "$FLAKE#nixosConfigurations.${HOSTATTR:-yoga}.config.system.build.toplevel")
+  if ! "$HOME/.local/bin/host-vuln-patches" "${pargs[@]}" > "$patchf" 2>>"$report"; then
     note "WARNING: host-vuln-patches failed; no patch filtering applied"
     echo '{"packages":[]}' > "$patchf"
   fi
   note "nixpkgs patch map: $(jq '.packages | length' "$patchf") packages, \
-$(jq '[.packages[].cves[]] | unique | length' "$patchf") CVEs patched in place"
+$(jq '[.packages[].cves[]] | unique | length' "$patchf") CVEs patched in place \
+($(jq -r '.sources | join(", ")' "$patchf"))"
 fi
 
 # grype runs with NO ignore config on purpose. Suppression now lives in $SUPPRESS and is

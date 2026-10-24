@@ -1,37 +1,49 @@
 #!/usr/bin/env python3
 """Map closure packages to the CVEs their nixpkgs derivation already patches.
 
-WHY THIS EXISTS
+WHY THIS MATTERS
     nixpkgs routinely fixes a CVE by applying a patch WITHOUT bumping the version,
     because upstream has not released. Every version-comparison scanner then reports the
-    package as vulnerable forever. Measured on this host 2026-10-23: 7 of 25 findings
-    (28%) were avahi 0.8 CVEs -- CVE-2023-38469/38470/38471/38472/38473, CVE-2026-24401,
-    CVE-2026-34933 -- every one of which avahi's own derivation patches. avahi 0.8 is the
-    last upstream release, so nixpkgs patches it in place and the version never moves.
+    package as vulnerable forever. Measured 2026-10-23: avahi 0.8 accounted for 7 of 24
+    findings, all of them CVEs avahi's own derivation patches -- 0.8 is the last upstream
+    release, so nixpkgs patches in place and the version never moves.
 
-    nixpkgs names those patch files after the CVE (`CVE-2023-38471-2.patch`), and the
-    parent derivation references them by store path, so the association is readable
-    straight out of the .drv text. That is the signal this tool extracts.
+PRIMARY SOURCE: THE SBOM'S CycloneDX PEDIGREE (--from-sbom)
+    sbomnix already records this, in the standard CycloneDX field:
+
+        pedigree.patches[].resolves[]  with  type = "security"  and  id = "CVE-..."
+
+    So the data is free -- it is already in the SBOM the scan generates. grype simply
+    does not honour it: given an SBOM that marks CVE-2026-55199 resolved by a patch, it
+    reports CVE-2026-55199 anyway. That is the gap this tool bridges, and the better
+    long-term fix is for grype to read the field it is already being handed.
+
+    Measured on this closure: pedigree covers 25 packages / 72 CVEs.
+
+SUPPLEMENTARY SOURCE: GREPPING THE BUILD CLOSURE (--drv-closure)
+    nixpkgs names patch files after the CVE (CVE-2023-38471-2.patch) and derivations
+    reference them by store path, so the association is also readable from .drv text.
+    This finds a few packages pedigree misses (gdk-pixbuf here) but costs ~16s and, on
+    this closure, 3 of its 4 extras (audiofile, Data-UUID, fontforge) are build-only
+    packages absent from the runtime SBOM, so filtering them achieves nothing. Off by
+    default; pass it to union both sources.
 
 ONE-WAY ONLY -- READ THIS BEFORE TRUSTING IT
-    A CVE named in the derivation is strong evidence the fix is applied.
-    Its ABSENCE proves nothing: plenty of patches are named `fix-overflow.patch`, some
-    arrive inside the source tarball, and `fetchpatch` can reference a CVE only in its
-    URL (which lives in the patch's own .drv, not the parent's). So this may only ever
-    SUPPRESS on positive evidence, never promote or confirm.
-
-    On this closure only 3 of 1959 derivations name a CVE at all. It is a narrow lever --
-    but it lands precisely on the patched-in-place packages that would otherwise generate
-    false positives in every scan forever.
+    A CVE recorded here is strong evidence the fix is applied. Its ABSENCE proves
+    nothing: patches get named fix-overflow.patch, arrive inside the source tarball, or
+    are referenced only by a fetchpatch URL. So this may only ever SUPPRESS on positive
+    evidence, never confirm.
 
 Usage:
-    host-vuln-patches [STORE_PATH]           # default /run/current-system
-    host-vuln-patches --format tsv           # pname<TAB>version<TAB>CVE triples
+    host-vuln-patches --from-sbom SBOM.cdx.json [--drv-closure DRV_OR_INSTALLABLE]
+    host-vuln-patches --drv-closure .#nixosConfigurations.HOST.config.system.build.toplevel
+    host-vuln-patches [STORE_PATH]        # legacy: surviving derivers of an output closure
 """
 import argparse, json, os, re, subprocess, sys
+from collections import defaultdict
 
 CVE = re.compile(r"CVE-\d{4}-\d{4,}", re.I)
-# ATerm env entries, e.g. ("pname","avahi") ("version","0.8") ("name","avahi-0.8")
+CVE_EXACT = re.compile(r"^CVE-\d{4}-\d{4,}$", re.I)
 ATTR = lambda k: re.compile(r'\("' + k + r'","([^"]*)"\)')
 NAME_VER = re.compile(r"^(.*?)-(\d[^-]*(?:-[0-9][^-]*)*)$")
 
@@ -41,98 +53,141 @@ def sh(*cmd):
     return r.stdout.splitlines() if r.returncode == 0 else []
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("target", nargs="?", default="/run/current-system")
-    ap.add_argument("--format", choices=("json", "tsv"), default="json")
-    ap.add_argument("--drv-closure", metavar="DRV_OR_INSTALLABLE",
-                    help="Read the full BUILD closure of derivations instead of the "
-                         "surviving derivers of the output closure. Takes a .drv path or "
-                         "a flake installable (its .drvPath is evaluated, which writes "
-                         "the whole .drv input closure without building anything). "
-                         "Strongly preferred: on this host the output closure had only "
-                         "530 of 2199 derivers still present -- the rest were garbage "
-                         "collected -- and found 3 CVE-naming derivations, while the "
-                         "build closure has 12050 derivations and finds 194. In CI the "
-                         "image is built in the same job, so either mode sees everything.")
-    args = ap.parse_args()
+def from_sbom(path, out):
+    """Read pedigree.patches[].resolves[] out of a CycloneDX SBOM."""
+    with open(path) as fh:
+        doc = json.load(fh)
+    n = 0
+    for comp in doc.get("components", []):
+        name, version = comp.get("name"), comp.get("version")
+        if not name or not version:
+            continue
+        for patch in ((comp.get("pedigree") or {}).get("patches") or []):
+            for res in (patch.get("resolves") or []):
+                # `type` distinguishes a security fix from a feature backport; `id` can
+                # be a CVE, a GHSA or an upstream bug number, so take only CVEs.
+                if res.get("type") != "security":
+                    continue
+                cid = (res.get("id") or "").strip().upper()
+                if CVE_EXACT.match(cid):
+                    out[(name, version)].add(cid)
+                    n += 1
+    return n
 
+
+def from_drv_closure(target, out):
+    """Grep the .drv text of a build closure for CVE-named patch references."""
+    if not target.endswith(".drv"):
+        got = sh("nix", "eval", "--raw", f"{target}.drvPath")
+        if not got:
+            print(f"host-vuln-patches: could not evaluate {target}.drvPath", file=sys.stderr)
+            return 0, 0
+        target = got[0].strip()
+    drvs = [d for d in sh("nix-store", "-q", "--requisites", target)
+            if d.endswith(".drv") and os.path.exists(d)]
+    n = 0
+    for drv in drvs:
+        try:
+            with open(drv, "r", errors="replace") as fh:
+                text = fh.read()
+        except OSError:
+            continue
+        cves = {c.upper() for c in CVE.findall(text)}
+        if not cves:
+            continue
+        # Require a real `pname`: that is what separates a package from the
+        # fetchurl/fetchpatch derivation that FETCHES a CVE patch. Without it those come
+        # through as bogus packages named "CVE" or "buffer-overflow-cve".
+        pm = ATTR("pname").search(text)
+        if not pm:
+            continue
+        pname = pm.group(1)
+        if not pname or pname.upper().startswith("CVE") or pname.endswith((".patch", ".diff")):
+            continue
+        vm = ATTR("version").search(text)
+        out[(pname, vm.group(1) if vm else "")].update(cves)
+        n += len(cves)
+    return n, len(drvs)
+
+
+def from_derivers(target, out):
+    """Legacy: derivers of an OUTPUT closure. Most .drv files are usually gone."""
+    paths = sh("nix-store", "-q", "--requisites", target)
+    if not paths:
+        print(f"host-vuln-patches: cannot read closure of {target}", file=sys.stderr)
+        return 0, 0, 0
     drvs, missing = set(), 0
-    if args.drv_closure:
-        target = args.drv_closure
-        if not target.endswith(".drv"):
-            got = sh("nix", "eval", "--raw", f"{target}.drvPath")
-            if not got:
-                print(f"host-vuln-patches: could not evaluate {target}.drvPath", file=sys.stderr)
-                return 2
-            target = got[0].strip()
-        for d in sh("nix-store", "-q", "--requisites", target):
-            if d.endswith(".drv") and os.path.exists(d):
-                drvs.add(d)
-        if not drvs:
-            print(f"host-vuln-patches: no derivations in the closure of {target}", file=sys.stderr)
-            return 2
-    else:
-        paths = sh("nix-store", "-q", "--requisites", args.target)
-        if not paths:
-            print(f"host-vuln-patches: cannot read closure of {args.target}", file=sys.stderr)
-            return 2
-        # Some store paths have no resolvable deriver (substituted without one, or the
-        # .drv was garbage collected); those are simply unknowable in this mode.
-        for d in sh("nix-store", "-q", "--deriver", *paths):
-            if d and d != "unknown-deriver" and os.path.exists(d):
-                drvs.add(d)
-            else:
-                missing += 1
-
-    # Cheap pre-filter: almost no derivation mentions a CVE, so only parse the few that do.
-    found = {}
+    for d in sh("nix-store", "-q", "--deriver", *paths):
+        if d and d != "unknown-deriver" and os.path.exists(d):
+            drvs.add(d)
+        else:
+            missing += 1
+    n = 0
     for drv in sorted(drvs):
         try:
             with open(drv, "r", errors="replace") as fh:
                 text = fh.read()
         except OSError:
             continue
-        cves = sorted({c.upper() for c in CVE.findall(text)})
-        if not cves:
-            continue
-        # Require a real `pname`. stdenv.mkDerivation packages set it; the fetchurl /
-        # fetchpatch derivations that FETCH a CVE patch set only `name`. Without this the
-        # patch fetches come through as bogus packages called "CVE" or
-        # "buffer-overflow-cve" and could shadow a real one.
+        cves = {c.upper() for c in CVE.findall(text)}
         pm = ATTR("pname").search(text)
-        if not pm:
+        if not cves or not pm:
             continue
         pname = pm.group(1)
-        vm = ATTR("version").search(text)
-        version = vm.group(1) if vm else ""
-        if not pname or pname.upper().startswith("CVE") or pname.endswith((".patch", ".diff")):
+        if pname.upper().startswith("CVE"):
             continue
-        # One package can have several derivations (multiple outputs, or re-instantiations
-        # with different inputs); union their CVEs rather than emitting duplicate rows.
-        key = (pname, version)
-        entry = found.setdefault(key, {"pname": pname, "version": version,
-                                       "drvs": [], "cves": set()})
-        entry["drvs"].append(drv)
-        entry["cves"].update(cves)
+        vm = ATTR("version").search(text)
+        out[(pname, vm.group(1) if vm else "")].update(cves)
+        n += len(cves)
+    return n, len(drvs), missing
 
-    packages = [{"pname": e["pname"], "version": e["version"],
-                 "cves": sorted(e["cves"]), "drvs": sorted(e["drvs"])}
-                for e in sorted(found.values(), key=lambda e: (e["pname"], e["version"]))]
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("target", nargs="?", default=None,
+                    help="store path for the legacy deriver mode (default "
+                         "/run/current-system when no other source is given)")
+    ap.add_argument("--from-sbom", metavar="CDX_JSON",
+                    help="CycloneDX SBOM; reads pedigree.patches[].resolves[]. Preferred: "
+                         "the data is already there and costs nothing.")
+    ap.add_argument("--drv-closure", metavar="DRV_OR_INSTALLABLE",
+                    help="additionally grep the build closure's .drv text (~16s)")
+    ap.add_argument("--format", choices=("json", "tsv"), default="json")
+    args = ap.parse_args()
+
+    found = defaultdict(set)
+    sources, scanned, missing = [], 0, 0
+
+    if args.from_sbom:
+        try:
+            n = from_sbom(args.from_sbom, found)
+        except (OSError, ValueError) as exc:
+            print(f"host-vuln-patches: could not read {args.from_sbom}: {exc}", file=sys.stderr)
+            return 2
+        sources.append(f"sbom-pedigree({n} records)")
+    if args.drv_closure:
+        n, scanned = from_drv_closure(args.drv_closure, found)
+        sources.append(f"drv-closure({n} records, {scanned} derivations)")
+    if not sources:
+        n, scanned, missing = from_derivers(args.target or "/run/current-system", found)
+        sources.append(f"derivers({n} records, {scanned} present, {missing} unresolvable)")
+
+    packages = [{"pname": k[0], "version": k[1], "cves": sorted(v)}
+                for k, v in sorted(found.items()) if v]
 
     if args.format == "tsv":
         for p in packages:
             for c in p["cves"]:
                 print(f"{p['pname']}\t{p['version']}\t{c}")
     else:
-        json.dump({"target": os.path.realpath(args.target),
-                   "derivations_scanned": len(drvs),
-                   "derivers_unresolvable": missing,
-                   "packages": packages}, sys.stdout, indent=2)
+        json.dump({"sources": sources, "derivations_scanned": scanned,
+                   "derivers_unresolvable": missing, "packages": packages},
+                  sys.stdout, indent=2)
         print()
 
-    print(f"host-vuln-patches: {len(packages)} packages name a CVE in their derivation "
-          f"({len(drvs)} derivations scanned, {missing} derivers unresolvable)", file=sys.stderr)
+    print(f"host-vuln-patches: {len(packages)} packages, "
+          f"{len({c for p in packages for c in p['cves']})} distinct CVEs patched in place "
+          f"[{', '.join(sources)}]", file=sys.stderr)
     return 0
 
 
