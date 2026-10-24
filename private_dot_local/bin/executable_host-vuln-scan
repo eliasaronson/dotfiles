@@ -63,6 +63,7 @@
 set -uo pipefail
 
 FLAKE=${FLAKE:-$HOME/nixos-config}
+HOSTATTR=${HOSTATTR:-yoga}   # nixosConfigurations attribute; the only host name in here
 REPORT_DIR=${REPORT_DIR:-$HOME/.local/state/host-vuln-scan}
 SUPPRESS=${SUPPRESS:-$HOME/.config/host-vuln/suppress.toml}
 KEEP=16  # reports to retain. Raised from 8 when reports became timestamped rather
@@ -94,8 +95,8 @@ note "host-vuln-scan $stamp  (closure: $(readlink -f /run/current-system))"
 [[ -n $prev ]] && note "previous report: $(basename "$prev")"
 
 tools=$(nix build --no-link --print-out-paths \
-  "$FLAKE#nixosConfigurations.yoga.pkgs.sbomnix" \
-  "$FLAKE#nixosConfigurations.yoga.pkgs.grype" 2>>"$report") || {
+  "$FLAKE#nixosConfigurations.$HOSTATTR.pkgs.sbomnix" \
+  "$FLAKE#nixosConfigurations.$HOSTATTR.pkgs.grype" 2>>"$report") || {
   note "FAILED: could not build sbomnix/grype from $FLAKE"
   notify-send -u critical -i dialog-error \
     "host-vuln-scan could not run" "sbomnix/grype failed to build from $FLAKE
@@ -151,7 +152,7 @@ echo '{"packages":[]}' > "$patchf"
 if [[ ${PATCH_FILTER:-1} == 1 && -x $HOME/.local/bin/host-vuln-patches ]]; then
   pargs=(--from-sbom "$sbom")
   [[ ${PATCH_DRV_SUPPLEMENT:-0} == 1 ]] && pargs+=(--drv-closure \
-    "$FLAKE#nixosConfigurations.${HOSTATTR:-yoga}.config.system.build.toplevel")
+    "$FLAKE#nixosConfigurations.$HOSTATTR.config.system.build.toplevel")
   if ! "$HOME/.local/bin/host-vuln-patches" "${pargs[@]}" > "$patchf" 2>>"$report"; then
     note "WARNING: host-vuln-patches failed; no patch filtering applied"
     echo '{"packages":[]}' > "$patchf"
