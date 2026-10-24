@@ -110,7 +110,9 @@ fi
 sbom=$(mktemp --suffix=.cdx.json)
 jsonf=$(mktemp --suffix=.grype.json)
 normf=$(mktemp --suffix=.norm.json)
-trap 'rm -f "$sbom" "$jsonf" "$normf"' EXIT
+rawf=$(mktemp --suffix=.raw.json)
+patchf=$(mktemp --suffix=.patches.json)
+trap 'rm -f "$sbom" "$jsonf" "$normf" "$rawf" "$patchf"' EXIT
 
 if ! sbomnix /run/current-system --cdx "$sbom" >>"$report" 2>&1; then
 	note "FAILED: sbomnix could not build an SBOM"
@@ -121,6 +123,23 @@ Report: $report" 2>/dev/null || true
 fi
 components=$(jq '.components | length' "$sbom")
 note "SBOM components: $components"
+
+# ---- which CVEs does nixpkgs already patch in place? ---------------------------------
+# nixpkgs fixes plenty of CVEs with a patch and no version bump, so every version
+# comparison reports them forever. Measured 2026-10-23: 7 of 25 findings were avahi 0.8
+# CVEs that avahi's own derivation patches. host-vuln-patches reads the patch filenames
+# out of the build closure's .drv files; see its header for the one-way caveat.
+echo '{"packages":[]}' > "$patchf"
+if [[ ${PATCH_FILTER:-1} == 1 && -x $HOME/.local/bin/host-vuln-patches ]]; then
+  if ! "$HOME/.local/bin/host-vuln-patches" \
+        --drv-closure "$FLAKE#nixosConfigurations.${HOSTATTR:-yoga}.config.system.build.toplevel" \
+        > "$patchf" 2>>"$report"; then
+    note "WARNING: host-vuln-patches failed; no patch filtering applied"
+    echo '{"packages":[]}' > "$patchf"
+  fi
+  note "nixpkgs patch map: $(jq '.packages | length' "$patchf") packages, \
+$(jq '[.packages[].cves[]] | unique | length' "$patchf") CVEs patched in place"
+fi
 
 cfg=()
 [[ -f $CONFIG ]] && cfg=(-c "$CONFIG")
@@ -148,7 +167,27 @@ else
   jq '[.matches[] | {id: .vulnerability.id, name: .artifact.name, version: .artifact.version,
                      sev: .vulnerability.severity, risk: (.vulnerability.risk // 0),
                      kev: ((.vulnerability.knownExploited // []) | length)}]
-      | unique_by([.id, .name, .version])' "$jsonf" > "$normf"
+      | unique_by([.id, .name, .version])' "$jsonf" > "$rawf"
+
+  # Drop findings the package's own derivation patches. Keyed on name AND version, so an
+  # entry stops applying the moment nixpkgs moves the version -- the same self-expiring
+  # property the hand-written ignores in host.yaml have.
+  jq --slurpfile pm "$patchf" '
+      ($pm[0].packages | map({key: (.pname + "@" + .version), value: .cves}) | from_entries) as $m
+      | [ .[] | . as $f | $f + { patched: ((($m[($f.name + "@" + $f.version)]) // []) | index($f.id) != null) } ]
+      | { kept: [ .[] | select(.patched | not) | del(.patched) ],
+          suppressed: [ .[] | select(.patched) | del(.patched) ] }' \
+    "$rawf" > "$normf.split"
+  jq '.kept' "$normf.split" > "$normf"
+  nsupp=$(jq '.suppressed | length' "$normf.split")
+  if ((nsupp > 0)); then
+    note ""
+    note "suppressed as already patched by nixpkgs ($nsupp):"
+    jq -r '.suppressed | sort_by(.name, .id)[] | "  \(.id)  \(.name) \(.version)  \(.sev)"' \
+      "$normf.split" | tee -a "$report"
+  fi
+  rm -f "$normf.split"
+
   findings=$(jq 'length' "$normf")
   high=$(jq '[.[] | select(.sev == "Critical" or .sev == "High")] | length' "$normf")
   kev=$(jq '[.[] | select(.kev > 0)] | length' "$normf")
@@ -221,7 +260,8 @@ DISTRO_PASS=${DISTRO_PASS:-1}
 if [[ $DISTRO_PASS == 1 && -x $HOME/.local/bin/host-vuln-distro ]]; then
   note ""
   note "=== second pass: distro advisory feeds (watchlist, not findings) ==="
-  if dout=$("$HOME/.local/bin/host-vuln-distro" "$sbom" --exclude-cves "$ids" 2>&1); then
+  if dout=$("$HOME/.local/bin/host-vuln-distro" "$sbom" --exclude-cves "$ids" \
+              --patched-map "$patchf" 2>&1); then
     printf '%s\n' "$dout" >> "$report"
     distro_ids=$(grep -m1 '^CVES_DISTRO ' <<<"$dout" | cut -d' ' -f2- || true)
     # Only diff when the previous report ran this pass too, otherwise the first run after
