@@ -60,8 +60,18 @@ DB_DEFAULT = os.path.expanduser("~/.cache/grype/db/6/vulnerability.db")
 # discards, so all 2319 rows were dropped while `sources:` still advertised the feed.
 # vulnerability_aliases maps AVG -> CVE (7739 rows) if revisited, but that unlocks only
 # ~70 advisories for 2023-2026, all covered by debian.
+#
+# Two more rolling feeds were evaluated 2026-10-24 and REJECTED, measured as unique
+# (package, CVE) pairs for this closure beyond the debian+alpine baseline of 28887:
+#   echo/rolling      21555 pairs, 99% of them identical to debian's -- it is a Debian
+#                     derivative mirroring the same tracker. 143 echo-only pairs, against
+#                     20% revision-only noise. Not worth it.
+#   secureos/rolling  229 pairs, 6 unique, 13 closure names. Nothing there.
+# hummingbird/rolling IS included: only 865 pairs but 224 unique (25%), 87% of its
+# advisories are from 2026, and 0% of its upper bounds are revision-only -- the cleanest
+# version shape of any feed here. Its unique signal is Rust/cargo and boost.
 ROLLING = {
-    ("alpine", "edge"), ("wolfi", "rolling"),
+    ("alpine", "edge"), ("wolfi", "rolling"), ("hummingbird", "rolling"),
     ("chainguard", "rolling"), ("minimos", "rolling"), ("debian", "unstable"),
 }
 
