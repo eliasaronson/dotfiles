@@ -70,3 +70,67 @@ ignore:
     package:
       name: openvpn
       version: 2.6.23
+
+  # --- mujs: version artefacts (and not reachable) ---------------------------------------
+  # Four of the eight high/critical findings on 2026-10-23 were mujs 1.3.6, from a batch of
+  # 2016-2017 fuzzing bugs. Two independent reasons they do not apply:
+  #   * Version artefact: every FIXED-IN is a DATE, not a version ("2017-01-12",
+  #     "2016-10-26") -- the tell this file's header describes. NVD recorded upstream commit
+  #     dates, all of them predating mujs 1.0.0; the installed 1.3.6 is many releases later.
+  #   * Not reachable: mujs is in the closure only as mpv's JavaScript engine for user
+  #     scripts (`nix-store -q --referrers` -> mpv-0.41.0 only). Nothing here ships an mpv
+  #     JS script, so the interpreter is never fed untrusted input.
+  # REVISIT IF you start using mpv JS user scripts from the internet.
+  - vulnerability: CVE-2016-10141
+    reason: >-
+      Version artefact: fixed-in is the date 2017-01-12, a pre-1.0.0 commit; installed is
+      1.3.6. Also not reachable -- mujs is only mpv's JS engine and no JS scripts are used.
+    package:
+      name: mujs
+      version: 1.3.6
+  - vulnerability: CVE-2016-9294
+    reason: >-
+      Version artefact: fixed-in is the date 2016-10-26, a pre-1.0.0 commit; installed is
+      1.3.6. Also not reachable -- see CVE-2016-10141 above.
+    package:
+      name: mujs
+      version: 1.3.6
+  - vulnerability: CVE-2017-5627
+    reason: >-
+      Version artefact: fixed-in is the date 2017-01-24, a pre-1.0.0 commit; installed is
+      1.3.6. Also not reachable -- see CVE-2016-10141 above.
+    package:
+      name: mujs
+      version: 1.3.6
+  - vulnerability: CVE-2017-5628
+    reason: >-
+      Version artefact: fixed-in is the date 2017-01-24, a pre-1.0.0 commit; installed is
+      1.3.6. Also not reachable -- see CVE-2016-10141 above.
+    package:
+      name: mujs
+      version: 1.3.6
+
+  # --- linux: version artefact -----------------------------------------------------------
+  # CVE-2020-27815 is a JFS out-of-bounds write fixed in 2020. grype reports FIXED-IN as
+  # "4.9.249, 4.14.213, 4.19.164, 5.4.86, ..." -- every entry is a 4.x/5.x stable backport,
+  # and CPE comparison cannot tell that the installed 7.3 is far past all of them. JFS is
+  # also not built into this kernel's filesystems in use.
+  - vulnerability: CVE-2020-27815
+    reason: >-
+      Version artefact: all fixed-in versions are 4.x/5.x stable backports from 2020 and
+      the installed kernel is 7.3; CPE ordering cannot compare across those branches.
+    package:
+      name: linux
+      version: "7.3"
+
+  # --- codex: CPE collision --------------------------------------------------------------
+  # CVE-2021-43635 with FIXED-IN "1.4.0" is not OpenAI's codex CLI (installed 0.163.0). It
+  # belongs to a different project sharing the name -- the same failure mode as ranger
+  # matching Apache Ranger. A 2021 CVE cannot apply to a 2026 tool that did not exist.
+  - vulnerability: CVE-2021-43635
+    reason: >-
+      CPE collision: a 2021 advisory for an unrelated project named codex; the installed
+      codex is OpenAI's CLI at 0.163.0, which postdates the CVE entirely.
+    package:
+      name: codex
+      version: 0.163.0
