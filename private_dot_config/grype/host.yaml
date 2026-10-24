@@ -134,3 +134,23 @@ ignore:
     package:
       name: codex
       version: 0.163.0
+
+  # --- dhcpcd: not reachable -------------------------------------------------------------
+  # CVE-2026-56116 is real (fixed upstream in 10.5.0; nixpkgs has 10.3.2 on unstable,
+  # master AND staging, so there is nothing to pull forward). But dhcpcd never executes on
+  # this host, verified 2026-10-23:
+  #     systemctl is-active dhcpcd.service   -> inactive
+  #     systemctl is-enabled dhcpcd.service  -> not-found   (no unit at all)
+  #     /etc/NetworkManager/NetworkManager.conf:18  dhcp=internal
+  # NetworkManager uses its own built-in DHCP client, so dhcpcd sits in the closure
+  # unreferenced and unrun.
+  # REVISIT IF you set `dhcp=dhcpcd` in NetworkManager, or enable networking.useDHCP /
+  # services.dhcpcd -- it would then run as root on untrusted network input.
+  - vulnerability: CVE-2026-56116
+    reason: >-
+      Not reachable: no dhcpcd unit exists on this host and NetworkManager is configured
+      dhcp=internal, so the binary never runs. Genuinely unfixed in nixpkgs (10.3.2 vs
+      10.5.0) but unexecuted.
+    package:
+      name: dhcpcd
+      version: 10.3.2
