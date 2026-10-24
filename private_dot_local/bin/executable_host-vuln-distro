@@ -39,8 +39,29 @@ DB_DEFAULT = os.path.expanduser("~/.cache/grype/db/6/vulnerability.db")
 # Distros that fix by moving to upstream. Named explicitly rather than selected by
 # label_version alone: that label also catches feeds whose versioning is not upstream
 # (echo's `v0.22.0+echo.1`), and a wrong comparison here is a silent false negative.
+# Measured 2026-10-24, share of affected-package entries from CVE-2025 or later, and
+# share of this closure's 1642 package names each feed carries:
+#   minimos/rolling     97% fresh,  7% names     chainguard/wolfi family: very fresh but
+#   chainguard/rolling  90% fresh,  7% names     a container/server catalog, so no avahi
+#   wolfi/rolling       84% fresh,  7% names     or gdk-pixbuf
+#   debian/unstable     40% fresh, 20% names     the workhorse: 27k entries from 2025+
+#   alpine/edge         36% fresh, 13% names
+# NOTE for image scanning: a Node/API image is almost entirely the chainguard catalog, so
+# for CI the fresher feeds may beat debian -- the opposite of the right answer here.
+#
+# archlinux is DELIBERATELY EXCLUDED, despite being the most upstream-tracking distro --
+# but NOT because grype's feed is stale. grype's `arch` provider is an accurate daily
+# mirror; Arch itself barely publishes advisories now. Advisories by newest CVE year,
+# grype's copy vs Arch's live tracker (2026-10-24): 3/3 for 2026, 42/42 for 2025, 18/18
+# for 2023, 811/925 for 2021. The AVG counter stops at 2910 upstream too. That fits a
+# rolling distro with no backporting -- there is little to track per CVE when the answer
+# is "update" -- rather than neglect.
+# It was also contributing nothing: Arch uses AVG-nnnn ids, which the CVE-id filter below
+# discards, so all 2319 rows were dropped while `sources:` still advertised the feed.
+# vulnerability_aliases maps AVG -> CVE (7739 rows) if revisited, but that unlocks only
+# ~70 advisories for 2023-2026, all covered by debian.
 ROLLING = {
-    ("alpine", "edge"), ("archlinux", "rolling"), ("wolfi", "rolling"),
+    ("alpine", "edge"), ("wolfi", "rolling"),
     ("chainguard", "rolling"), ("minimos", "rolling"), ("debian", "unstable"),
 }
 
@@ -274,7 +295,14 @@ def main():
           f"{len(unfixed)} affected-but-unfixed"
           + (f"; {n_patched} patched in nixpkgs" if n_patched else "")
           + (f"; {n_suppressed} suppressed" if n_suppressed else "") + ")")
-    print("sources: " + ", ".join(sorted(set(osname.values()))))
+    # Only feeds that actually contributed. Listing a configured-but-silent feed is how
+    # archlinux looked like a source for a day while supplying nothing.
+    contributing = sorted({src for _, srcs in affected.values() for src in srcs}
+                          | set(unfixed.values()))
+    quiet = sorted(set(osname.values()) - set(contributing))
+    print("sources: " + (", ".join(contributing) or "none"))
+    if quiet:
+        print("  no rows from: " + ", ".join(quiet))
     print("NOTE: nixpkgs may carry a backported patch without a version bump -- verify "
           "before acting.")
     print()
