@@ -211,6 +211,35 @@ if [[ $scan_ok == true ]] && ((findings > 0)); then
            + (if .kev > 0 then "  [KEV]" else "" end)' "$normf" | tee -a "$report"
 fi
 
+# ---- second pass: distro advisory feeds ----------------------------------------------
+# The CPE pass above can only see nvd:cpe records, a small minority of grype's data on a
+# Nix closure. host-vuln-distro reads the same local DB by PACKAGE NAME against rolling
+# distro feeds; see its header for the measurements and the caveats. Verified 2026-10-23:
+# it surfaces brotli CVE-2026-111497 and 8 nodejs CVEs that the CPE pass reports as clean.
+distro_ids="" distro_new=""
+DISTRO_PASS=${DISTRO_PASS:-1}
+if [[ $DISTRO_PASS == 1 && -x $HOME/.local/bin/host-vuln-distro ]]; then
+  note ""
+  note "=== second pass: distro advisory feeds (watchlist, not findings) ==="
+  if dout=$("$HOME/.local/bin/host-vuln-distro" "$sbom" --exclude-cves "$ids" 2>&1); then
+    printf '%s\n' "$dout" >> "$report"
+    distro_ids=$(grep -m1 '^CVES_DISTRO ' <<<"$dout" | cut -d' ' -f2- || true)
+    # Only diff when the previous report ran this pass too, otherwise the first run after
+    # enabling it reports several hundred CVEs as "new".
+    if [[ -n $prev && -f $prev ]] && grep -q '^CVES_DISTRO ' "$prev" 2>/dev/null; then
+      prev_distro=$(grep -m1 '^CVES_DISTRO ' "$prev" | cut -d' ' -f2-)
+      distro_new=$(comm -13 <(tr ' ' '\n' <<<"$prev_distro" | sort -u | grep -v '^$') \
+                            <(tr ' ' '\n' <<<"$distro_ids"  | sort -u | grep -v '^$') | tr '\n' ' ')
+      note "distro-feed new since previous: ${distro_new:-none}"
+    else
+      note "distro-feed baseline recorded ($(wc -w <<<"$distro_ids") CVEs); diffing starts next run"
+    fi
+  else
+    printf '%s\n' "$dout" >> "$report"
+    alerts+=("the distro-feed second pass failed; only CPE-matched findings are in this report")
+  fi
+fi
+
 # ---- notify -------------------------------------------------------------------------
 # Integrity first: a report that cannot be trusted is more urgent than its contents.
 if ((${#alerts[@]} > 0)); then
@@ -223,9 +252,11 @@ if ((${#alerts[@]} > 0)); then
     "$body
 
 Report: $report" 2>/dev/null || true
-elif [[ -n ${new_ids// /} ]] || ((kev > 0)); then
+elif [[ -n ${new_ids// /} ]] || [[ -n ${distro_new// /} ]] || ((kev > 0)); then
   detail=""
-  [[ -n ${new_ids// /} ]] && detail+="New: ${new_ids}
+  [[ -n ${new_ids// /} ]] && detail+="New (CPE): ${new_ids}
+"
+  [[ -n ${distro_new// /} ]] && detail+="New (distro feeds): ${distro_new}
 "
   ((kev > 0)) && detail+="$kev CISA known-exploited.
 "
@@ -245,6 +276,7 @@ fi
   echo "--- MACHINE READABLE (parsed by the next run; do not edit) ---"
   echo "SUMMARY components=$components findings=$findings high=$high kev=$kev scan_ok=$scan_ok alerts=${#alerts[@]}"
   echo "CVES $ids"
+  echo "CVES_DISTRO $distro_ids"
 } >> "$report"
 
 # Keep the directory from growing forever.

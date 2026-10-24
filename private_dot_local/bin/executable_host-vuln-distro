@@ -1,0 +1,277 @@
+#!/usr/bin/env python3
+"""Second-pass CVE watchlist for a Nix closure, from DISTRO advisory feeds.
+
+WHY THIS EXISTS
+    host-vuln-scan matches the closure with grype, which on a Nix closure can only use
+    its `nvd:cpe` source -- CPE string matching. Measured 2026-10-23, that is a small
+    minority of what grype's own database holds: brotli has 1 nvd:cpe record out of 123,
+    zstd has 0 out of 101. Everything else sits in DISTRO namespaces (debian:*, alpine:*,
+    archlinux:*) keyed to deb/apk/pacman package identities a Nix closure does not have.
+    The consequence was concrete: CVE-2026-111497 (critical, brotli 1.0.3-1.2.0) was in
+    the local database under debian:* on the day it was published and never matched,
+    while the closure carried brotli 1.2.0.
+
+    This pass reads the same local database by PACKAGE NAME instead, so that data becomes
+    reachable. Measured coverage: 278 of 1642 closure package names have advisory data in
+    a rolling distro, against 15 packages the CPE pass has ever produced a finding for.
+
+WHY ONLY ROLLING DISTROS
+    A distro that BACKPORTS encodes the fix in its own revision, not the upstream version
+    -- Red Hat records no usable constraint at all, and Debian stable says things like
+    "7.88.1-10+deb12u5", which cannot be compared against a nixpkgs version. Rolling,
+    minimally-patched distros fix by upgrading to upstream, so their threshold is an
+    upstream version: alpine `< 7.36.0-r0`, arch `< 1.0.9-1`. Strip the trailing distro
+    revision and the comparison is meaningful. Only those feeds are consulted.
+
+READ THE OUTPUT AS A WATCHLIST, NOT AS FINDINGS
+    nixpkgs sometimes backports a patch without bumping the version, so a patched
+    nixpkgs 1.2.0 still trips an `< 1.2.1` threshold. Expect false positives of that
+    shape. The useful half is often the "affected, no fix published" rows: that is what
+    the brotli case looked like, and no version comparison would have produced it.
+
+Usage:  host-vuln-distro SBOM.cdx.json [--exclude-cves "CVE-1 CVE-2 ..."]
+"""
+import argparse, json, os, re, sqlite3, subprocess, sys, tempfile
+from datetime import date
+from collections import defaultdict
+
+DB_DEFAULT = os.path.expanduser("~/.cache/grype/db/6/vulnerability.db")
+# Distros that fix by moving to upstream. Named explicitly rather than selected by
+# label_version alone: that label also catches feeds whose versioning is not upstream
+# (echo's `v0.22.0+echo.1`), and a wrong comparison here is a silent false negative.
+ROLLING = {
+    ("alpine", "edge"), ("archlinux", "rolling"), ("wolfi", "rolling"),
+    ("chainguard", "rolling"), ("minimos", "rolling"), ("debian", "unstable"),
+}
+
+# Only real CVE ids. Chainguard and Arch also emit their own aliases for the same bug
+# (GHSA-xxxx, AVG-1742), which triple-counted every finding in the first run.
+ID_OK = re.compile(r"^CVE-\d{4}-\d{4,}$")
+# A threshold is only comparable if it is a plain upstream RELEASE. Arch carries git
+# snapshots (`0.8+r127+g55d783d`) and Chainguard carries release candidates (`0.9_rc3`);
+# both compare "newer" than every release and would flag the package forever.
+UNUSABLE = re.compile(r"[_+~]|(?:^|[.\-])(?:rc|alpha|beta|dev|pre|snapshot|git)", re.I)
+
+EPOCH = re.compile(r"^\d+:")
+# apk `-r3`, pacman/dpkg `-1`, dpkg `-2+deb12u1`. Upstream versions do contain hyphens
+# (`1.0-beta`), so only strip a trailing field that actually looks like a revision.
+REV = re.compile(r"-(?:r\d+|\d+(?:[.+~][0-9A-Za-z.+~]*)?)$")
+
+
+def upstream(v):
+    """Reduce a distro version string to the upstream version it was built from."""
+    v = EPOCH.sub("", v.strip())
+    return REV.sub("", v)
+
+
+def usable_threshold(v):
+    """True if v is a plain upstream release we can meaningfully compare against."""
+    return bool(v) and not UNUSABLE.search(v)
+
+
+def verkey(v):
+    """Sort key for DISPLAY ordering only -- the affected/not decision is made by
+    builtins.compareVersions, never by this."""
+    # Tag each component so numeric and alphabetic parts never compare against each
+    # other: ("1.2.0" vs "1.2.0a") would otherwise raise TypeError.
+    return [(0, int(x), "") if x.isdigit() else (1, 0, x) for x in re.split(r"[.\-]", v)]
+
+
+def nix_compare(pairs):
+    """builtins.compareVersions for every (a, b) pair, in ONE nix process.
+
+    Deliberately not reimplemented in Python. Nix's component ordering has corners (the
+    `pre` rule, empty-vs-numeric) and getting one wrong would drop findings silently --
+    the exact failure mode this script exists to fix. Returns a list of -1/0/1.
+    """
+    if not pairs:
+        return []
+    esc = lambda s: s.replace("\\", "\\\\").replace('"', '\\"')
+    expr = "builtins.map (p: builtins.compareVersions (builtins.head p) (builtins.elemAt p 1)) [\n"
+    expr += "".join(f'  [ "{esc(a)}" "{esc(b)}" ]\n' for a, b in pairs) + "]\n"
+    with tempfile.NamedTemporaryFile("w", suffix=".nix", delete=False) as fh:
+        fh.write(expr)
+        path = fh.name
+    try:
+        out = subprocess.run(["nix", "eval", "--file", path, "--json"],
+                             capture_output=True, text=True, timeout=600)
+        if out.returncode != 0:
+            print(f"host-vuln-distro: nix eval failed: {out.stderr.strip()[:300]}", file=sys.stderr)
+            return None
+        return json.loads(out.stdout)
+    finally:
+        os.unlink(path)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("sbom")
+    ap.add_argument("--db", default=os.environ.get("GRYPE_DB", DB_DEFAULT))
+    ap.add_argument("--exclude-cves", default="",
+                    help="space-separated CVE ids already reported by the CPE pass")
+    ap.add_argument("--unfixed-since-year", type=int, default=0,
+                    help="only report affected-but-unfixed for CVEs of this year or later "
+                         "(default: last year). Debian's unfixed set includes decades of "
+                         "wontfix entries -- CVE-2004-0230 (the TCP RST attack) is still "
+                         "'not-fixed' and always will be. Age is the only discriminator: "
+                         "fix.state is 'not-fixed' for that and for brotli alike.")
+    args = ap.parse_args()
+
+    if not os.path.exists(args.db):
+        print(f"host-vuln-distro: no grype DB at {args.db}; skipping distro pass", file=sys.stderr)
+        return 2
+
+    with open(args.sbom) as fh:
+        sbom = json.load(fh)
+    # One closure name can appear at several versions (lua 5.1.5 and 5.2.4 both present).
+    installed = defaultdict(set)
+    for comp in sbom.get("components", []):
+        n, v = comp.get("name"), comp.get("version")
+        if n and v:
+            installed[n].add(v)
+    if not installed:
+        print("host-vuln-distro: SBOM had no name/version components", file=sys.stderr)
+        return 2
+
+    excluded = {c for c in args.exclude_cves.split() if c}
+    cutoff_year = args.unfixed_since_year or (date.today().year - 1)
+    con = sqlite3.connect(f"file:{args.db}?mode=ro", uri=True)
+
+    # CVEs every provider marks rejected (withdrawn/disputed). 20k of them in this DB.
+    rejected = {r[0] for r in con.execute(
+        """SELECT name FROM vulnerability_handles GROUP BY name
+           HAVING SUM(status = 'active') = 0 AND SUM(status = 'rejected') > 0""")}
+
+    osids, osname = [], {}
+    for oid, nm, lab in con.execute(
+            "SELECT id, name, label_version FROM operating_systems WHERE label_version != ''"):
+        if (nm, lab) in ROLLING:
+            osids.append(oid)
+            osname[oid] = f"{nm}/{lab}"
+    if not osids:
+        print("host-vuln-distro: no rolling distro feeds in this DB", file=sys.stderr)
+        return 2
+
+    names = list(installed)
+    rows = []
+    # Chunk the IN list: SQLite's default variable limit is ~32k but drivers vary.
+    for i in range(0, len(names), 400):
+        chunk = names[i:i + 400]
+        q = f"""SELECT v.name, p.name, a.operating_system_id, b.value
+                FROM affected_package_handles a
+                JOIN packages p ON p.id = a.package_id
+                JOIN vulnerability_handles v ON v.id = a.vulnerability_id
+                JOIN blobs b ON b.id = a.blob_id
+                WHERE p.name IN ({','.join('?' * len(chunk))})
+                  AND a.operating_system_id IN ({','.join('?' * len(osids))})"""
+        rows.extend(con.execute(q, chunk + osids))
+
+    # Build candidates, collecting the version comparisons we need to resolve.
+    unfixed, cmps, pending = {}, [], []
+    for cve, pkg, oid, blob in rows:
+        cve = cve.upper()
+        if cve in excluded or cve in rejected or not ID_OK.match(cve):
+            continue
+        try:
+            ranges = (json.loads(blob) or {}).get("ranges") or []
+        except (ValueError, AttributeError):
+            continue
+        constraints = [((r.get("version") or {}).get("constraint") or "").strip() for r in ranges]
+        for inst in installed[pkg]:
+            if not any(constraints):
+                # Listed as affected with no fixed version recorded. This is the brotli
+                # shape, and the whole reason the pass is not gated on --only-fixed.
+                # Age-gate only this bucket. A row WITH a fixed version is actionable
+                # however old the CVE is; one without is only actionable while the fix is
+                # still pending rather than declined years ago.
+                if int(cve.split("-")[1]) >= cutoff_year:
+                    unfixed[(cve, pkg, inst)] = osname[oid]
+                continue
+            for con_s in constraints:
+                if not con_s:
+                    continue
+                lo = hi = None
+                for part in con_s.split(","):
+                    part = part.strip()
+                    if part.startswith("<"):
+                        hi = upstream(part.lstrip("<=").strip())
+                    elif part.startswith(">="):
+                        lo = upstream(part[2:].strip())
+                if not usable_threshold(hi):
+                    continue
+                pending.append((cve, pkg, inst, osname[oid], lo, hi))
+                cmps.append((inst, hi))
+                if lo:
+                    cmps.append((inst, lo))
+
+    verdicts = nix_compare(cmps)
+    if verdicts is None:
+        return 3
+    it = iter(verdicts)
+    affected = {}
+    for cve, pkg, inst, osn, lo, hi in pending:
+        below_hi = next(it) < 0
+        at_or_above_lo = next(it) >= 0 if lo else True
+        if below_hi and at_or_above_lo:
+            key = (cve, pkg, inst)
+            # Several feeds may carry the same CVE; keep the lowest fixed version, the
+            # earliest upstream release known to contain the fix. Ordering only, so the
+            # local key is fine -- nix already decided affected-or-not above.
+            prev = affected.get(key)
+            if prev is None or verkey(hi) < verkey(prev[0]):
+                affected[key] = (hi, {osn})
+            elif hi == prev[0]:
+                prev[1].add(osn)
+
+    for key in affected:
+        unfixed.pop(key, None)
+
+    if not affected and not unfixed:
+        print("distro-feed watchlist: nothing new beyond the CPE pass")
+        print("CVES_DISTRO")
+        return 0
+
+    print(f"distro-feed watchlist ({len(affected)} with a fixed version, "
+          f"{len(unfixed)} affected-but-unfixed)")
+    print("sources: " + ", ".join(sorted(set(osname.values()))))
+    print("NOTE: nixpkgs may carry a backported patch without a version bump -- verify "
+          "before acting.")
+    print()
+    # One row per (package, installed, fixed-in). bind alone produced 28 separate CVE
+    # rows against the same 9.20.30 in the first run; grouped, it is one actionable line.
+    groups = defaultdict(lambda: (set(), set()))
+    for (cve, pkg, inst), (hi, srcs) in affected.items():
+        cves, who = groups[(pkg, inst, hi)]
+        cves.add(cve)
+        who.update(srcs)
+    for (pkg, inst, hi) in sorted(groups, key=lambda k: (k[0], verkey(k[1]))):
+        cves, who = groups[(pkg, inst, hi)]
+        shown = sorted(cves)[:4]
+        more = f" (+{len(cves) - len(shown)} more)" if len(cves) > len(shown) else ""
+        print(f"  {pkg:<22} {inst:<14} -> {hi:<14} {len(cves):>3} CVE  [{', '.join(sorted(who))}]")
+        print(f"      {', '.join(shown)}{more}")
+
+    ungroups = defaultdict(lambda: (set(), set()))
+    for (cve, pkg, inst), osn in unfixed.items():
+        cves, who = ungroups[(pkg, inst)]
+        cves.add(cve)
+        who.add(osn)
+    if ungroups:
+        print()
+        print(f"  AFFECTED, NO FIX PUBLISHED  (CVEs from {cutoff_year} on; "
+              f"the shape the brotli miss had)")
+        for (pkg, inst) in sorted(ungroups, key=lambda k: (k[0], verkey(k[1]))):
+            cves, who = ungroups[(pkg, inst)]
+            shown = sorted(cves)[:4]
+            more = f" (+{len(cves) - len(shown)} more)" if len(cves) > len(shown) else ""
+            print(f"  {pkg:<22} {inst:<14} {'':<17} {len(cves):>3} CVE  [{', '.join(sorted(who))}]")
+            print(f"      {', '.join(shown)}{more}")
+
+    ids = sorted({k[0] for k in affected} | {k[0] for k in unfixed})
+    print()
+    print("CVES_DISTRO " + " ".join(ids))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
