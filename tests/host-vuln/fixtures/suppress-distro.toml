@@ -1,0 +1,6 @@
+[[ignore]]
+id = "CVE-2099-00009"
+package = "supppkg"
+version = "1.0"
+pass = "distro"
+reason = "Not reachable: synthetic fixture entry exercising the distro-scoped path."

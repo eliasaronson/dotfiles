@@ -1,0 +1,12 @@
+[[ignore]]
+id = "CVE-2021-43635"
+package = "codex"
+version = "0.163.0"
+reason = "CPE collision: a 2021 advisory for an unrelated project named codex."
+
+[[ignore]]
+id = "CVE-2099-00001"
+package = "distro-only-pkg"
+version = "1.0"
+pass = "distro"
+reason = "scoped to the distro pass; must NOT apply to the CPE pass."

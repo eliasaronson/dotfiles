@@ -1,0 +1,56 @@
+{"matches": [
+  {"artifact": {"name": "curl", "version": "8.22.0"},
+   "vulnerability": {"id": "CVE-2026-92392", "severity": "High", "risk": 0.7,
+     "epss": [{"epss": 0.009}], "fix": {"versions": ["8.14.3","8.16.2","8.20.2","8.23.0"]}}},
+  {"artifact": {"name": "curl", "version": "8.22.0"},
+   "vulnerability": {"id": "CVE-2026-92392", "severity": "High", "risk": 0.7,
+     "fix": {"versions": ["8.14.3","8.16.2","8.20.2","8.23.0"]}}},
+  {"artifact": {"name": "curl", "version": "8.22.0"},
+   "vulnerability": {"id": "CVE-2026-92392", "severity": "High", "risk": 0.7,
+     "fix": {"versions": ["8.14.3","8.16.2","8.20.2","8.23.0"]}}},
+
+  {"artifact": {"name": "glibc", "version": "2.44-57"},
+   "vulnerability": {"id": "CVE-2026-89092", "severity": "Medium", "risk": 0.1,
+     "fix": {"versions": ["2.45"]}}},
+  {"artifact": {"name": "glibc", "version": "2.44-57"},
+   "vulnerability": {"id": "CVE-2026-6791", "severity": "Medium", "risk": 0.1,
+     "fix": {"versions": ["2.44"]}}},
+  {"artifact": {"name": "linux", "version": "7.3"},
+   "vulnerability": {"id": "CVE-2020-27815", "severity": "High", "risk": 0.6,
+     "fix": {"versions": ["4.9.249","4.14.213","4.19.164","5.4.86"]}}},
+
+  {"artifact": {"name": "gcc", "version": "16.2.0"},
+   "vulnerability": {"id": "CVE-2023-4039", "severity": "Medium", "risk": 0.5,
+     "fix": {"versions": ["2023-09-12"]}}},
+  {"artifact": {"name": "python3", "version": "3.14.8"},
+   "vulnerability": {"id": "CVE-2025-15367", "severity": "Medium", "risk": 0.2,
+     "fix": {"versions": ["3.15.0a6"]}}},
+  {"artifact": {"name": "python3", "version": "3.14.8"},
+   "vulnerability": {"id": "CVE-2026-12345", "severity": "Medium", "risk": 0.05,
+     "fix": {"versions": ["3.15.0rc3"]}}},
+
+  {"artifact": {"name": "avahi", "version": "0.8"},
+   "vulnerability": {"id": "CVE-2023-38471", "severity": "Medium", "risk": 0.2,
+     "fix": {"versions": ["0.9"]}}},
+  {"artifact": {"name": "avahi", "version": "0.9"},
+   "vulnerability": {"id": "CVE-2023-38471", "severity": "Medium", "risk": 0.2,
+     "fix": {"versions": ["0.10"]}}},
+
+  {"artifact": {"name": "codex", "version": "0.163.0"},
+   "vulnerability": {"id": "CVE-2021-43635", "severity": "Medium", "risk": 0.9,
+     "fix": {"versions": ["1.4.0"]}}},
+
+  {"artifact": {"name": "openssl", "version": "1.1.1a"},
+   "vulnerability": {"id": "CVE-2026-11111", "severity": "High", "risk": 0.8,
+     "fix": {"versions": ["1.1.1w"]}}},
+
+  {"artifact": {"name": "nodejs", "version": "20.5.0"},
+   "vulnerability": {"id": "CVE-2023-44487", "severity": "High", "risk": 78.75,
+     "epss": [{"epss": 0.99999}],
+     "knownExploited": [{"cve": "CVE-2023-44487", "dateAdded": "2023-10-10"}],
+     "fix": {"versions": ["20.8.1"]}}},
+
+  {"artifact": {"name": "nofix", "version": "1.0"},
+   "vulnerability": {"id": "CVE-2026-22222", "severity": "Low", "risk": 0.0,
+     "fix": {"versions": []}}}
+]}

@@ -1,0 +1,3 @@
+{"sources": ["test"], "packages": [
+  {"pname": "patchedpkg", "version": "1.0", "cves": ["CVE-2026-00008"]}
+]}

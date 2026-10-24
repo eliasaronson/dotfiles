@@ -94,7 +94,11 @@ DEB_REV = re.compile(r"^(.*?)-(\d+)(?:\.\d+)?(\+[A-Za-z0-9.~+]+)?$")
 EPOCH = re.compile(r"^\d+:")
 # apk `-r3`, pacman/dpkg `-1`, dpkg `-2+deb12u1`. Upstream versions do contain hyphens
 # (`1.0-beta`), so only strip a trailing field that actually looks like a revision.
-REV = re.compile(r"-(?:r\d+|\d+(?:[.+~][0-9A-Za-z.+~]*)?)$")
+# `_` belongs in the suffix class: rpm releases look like `-7.el10_1`, and without it
+# upstream("0:1.1.0-7.el10_1") returned "1.1.0-7.el10_1", which then failed
+# usable_threshold() for containing an underscore -- a silent miss. hummingbird is
+# an rpm feed, so this is reachable. Found by tests/host-vuln/test_distro.py.
+REV = re.compile(r"-(?:r\d+|\d+(?:[.+~][0-9A-Za-z.+~_]*)?)$")
 
 
 def revision_beyond_first(v):
@@ -349,11 +353,25 @@ def main():
     # Only feeds that actually contributed. Listing a configured-but-silent feed is how
     # archlinux looked like a source for a day while supplying nothing.
     contributing = sorted({src for _, srcs in affected.values() for src in srcs}
-                          | set(unfixed.values()))
-    quiet = sorted(set(osname.values()) - set(contributing))
+                          | set(unfixed.values())
+                          | {osn for _raw, osn in revfix.values()})
+    configured = {f"{n}/{l}" for n, l in ROLLING}
+    present = set(osname.values())
+    # Two different failures, and the second is the dangerous one: a feed PRESENT in the
+    # DB but matching nothing may just mean this closure shares no packages with it,
+    # whereas a feed ABSENT from the DB means a rename or a dropped provider has silently
+    # removed coverage. debian/unstable alone is 63% of this pass.
+    quiet = sorted(present - set(contributing))
+    absent = sorted(configured - present)
     print("sources: " + (", ".join(contributing) or "none"))
     if quiet:
-        print("  no rows from: " + ", ".join(quiet))
+        print("  present but matched nothing: " + ", ".join(quiet))
+    if absent:
+        print("  NOT IN THE DATABASE (coverage lost): " + ", ".join(absent))
+    # Machine-readable, so host-vuln-scan can raise an INTEGRITY alert. A configured feed
+    # going quiet is silent coverage loss: debian/unstable alone is 63% of this pass, so
+    # losing it to a schema or label rename would just look like fewer findings.
+    print("FEEDS_QUIET " + " ".join(absent))
     print("NOTE: nixpkgs may carry a backported patch without a version bump -- verify "
           "before acting.")
     print()

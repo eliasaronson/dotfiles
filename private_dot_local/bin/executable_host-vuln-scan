@@ -274,6 +274,11 @@ if [[ $DISTRO_PASS == 1 && -x $HOME/.local/bin/host-vuln-distro ]]; then
               --patched-map "$patchf" ${SUPPRESS:+--suppress "$SUPPRESS"} 2>&1); then
     printf '%s\n' "$dout" >> "$report"
     distro_ids=$(grep -m1 '^CVES_DISTRO ' <<<"$dout" | cut -d' ' -f2- || true)
+    # A configured feed that produced nothing is coverage lost without a symptom.
+    quiet_feeds=$(grep -m1 '^FEEDS_QUIET ' <<<"$dout" | cut -d' ' -f2- || true)
+    if [[ -n ${quiet_feeds// /} ]]; then
+      alerts+=("distro feeds produced no rows: ${quiet_feeds% } -- coverage silently reduced")
+    fi
     # Only diff when the previous report ran this pass too, otherwise the first run after
     # enabling it reports several hundred CVEs as "new".
     if [[ -n $prev && -f $prev ]] && grep -q '^CVES_DISTRO ' "$prev" 2>/dev/null; then

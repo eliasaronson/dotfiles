@@ -1,0 +1,24 @@
+{"bomFormat":"CycloneDX","specVersion":"1.5","version":1,"components":[
+ {"name":"avahi","version":"0.8","bom-ref":"a-out","pedigree":{"patches":[
+   {"type":"unofficial","resolves":[{"type":"security","id":"CVE-2023-38471"}]},
+   {"type":"unofficial","resolves":[{"type":"security","id":"CVE-2021-3468"}]}]}},
+ {"name":"avahi","version":"0.8","bom-ref":"a-dev","pedigree":{"patches":[
+   {"type":"unofficial","resolves":[{"type":"security","id":"CVE-2026-24401"}]}]}},
+ {"name":"cups","version":"2.4.19","pedigree":{"patches":[
+   {"type":"unofficial","resolves":[{"type":"security","id":"CVE-2026-87875"},
+                                    {"type":"other","id":"CVE-9999-00001"}]}]}},
+ {"name":"ghsaonly","version":"1.0","pedigree":{"patches":[
+   {"type":"unofficial","resolves":[{"type":"security","id":"GHSA-xxxx-yyyy-zzzz"}]}]}},
+ {"name":"nopedigree","version":"2.0"},
+ {"name":"emptypatches","version":"3.0","pedigree":{"patches":[{"type":"unofficial"}]}},
+
+ {"name":"brotli","version":"1.2.0"},
+ {"name":"oldpkg","version":"1.0"},
+ {"name":"revpkg","version":"1.2.0"},
+ {"name":"rejpkg","version":"1.0"},
+ {"name":"avgpkg","version":"1.0"},
+ {"name":"wrongfeed","version":"1.0"},
+ {"name":"patchedpkg","version":"1.0"},
+ {"name":"supppkg","version":"1.0"},
+ {"name":"prerelpkg","version":"1.0"}
+]}
