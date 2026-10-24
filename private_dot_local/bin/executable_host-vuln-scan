@@ -16,12 +16,37 @@
 # "2.9.0" was Apache Ranger, dnsmasq's "2.93test9" and libmicrohttpd's "2025-09-16" are NVD
 # data artefacts. Treat the report as a short list to eyeball, not a list of real bugs.
 #
+# KNOWN BLIND SPOT, measured 2026-10-23 -- do not mistake a quiet report for a clean one:
+#   1. Only `nvd:cpe` applies to a Nix closure. grype's DB carries far more data in
+#      DISTRO namespaces (debian:*, redhat:*, alpine:*) keyed to deb/rpm/apk package
+#      identities a closure does not have. Measured share of nvd:cpe records: brotli
+#      1 of 123, zstd 0 of 101, zlib 15 of 565, dbus 24 of 1209. So brotli CVEs are
+#      INVISIBLE here, permanently -- CVE-2026-111497 (critical, brotli 1.0.3-1.2.0,
+#      published 2026-10-22) was in this DB, under debian:*/echo:*, and never matched.
+#   2. Bundled/vendored deps are not components. sbomnix enumerates DERIVATIONS, so the
+#      brotli inside nodejs and the brotli/libvpx/ffmpeg/sqlite inside google-chrome are
+#      not in the SBOM at all. Nothing closure-based can see them.
+# Neither is fixable here, and no config change helps. Both need tracking by hand:
+# watch upstream advisories for the compression/TLS libraries that Chrome, Node and
+# curl vendor, and check `nix eval --raw ...#<pkg>.version` against the fixed version
+# rather than waiting for this scan to mention them.
+#
 # Tools come from the system's own nixpkgs pin (~/nixos-config), so they match the closure
 # being scanned and need no second nixpkgs instance. grype keeps a ~3 GB vulnerability DB
 # in ~/.cache/grype and refreshes it itself.
 #
 # Ignores live in ~/.config/grype/host.yaml, pinned to a version like the CI config, so an
 # entry expires by itself once nixpkgs ships a new build.
+#
+# NOTIFICATION POLICY. A high/critical COUNT is a bad trigger: a steady 11 reads the same
+# whether it is the same 11 or a fresh 11, and a count of 0 reads as "clean" when it
+# usually means the scan broke. 2026-10-05 proved that -- 1809 components, grype ran,
+# 0 findings, no notification, sitting between 33 on 10-02 and 26 on 10-07. So instead:
+#   * INTEGRITY alerts fire when the run looks untrustworthy (zero findings, a component
+#     count collapse, a stale/invalid DB, grype error). Silence now means "verified quiet".
+#   * CVE alerts fire on NEW CVE IDs since the previous report, and on anything CISA
+#     lists as known-exploited, ranked by grype's risk score (EPSS x severity).
+# Each report ends with a machine-readable block that the next run parses to do this.
 
 set -uo pipefail
 
@@ -32,7 +57,15 @@ KEEP=16  # reports to retain. Raised from 8 when reports became timestamped rath
          # than dated: ad-hoc runs now create their own files instead of replacing
          # the day's, so 8 no longer bought ~2 months of weekly history.
 
+# Integrity thresholds.
+DB_MAX_AGE_DAYS=${DB_MAX_AGE_DAYS:-7}     # grype refreshes daily; a week stale is broken.
+COMPONENT_DROP_PCT=${COMPONENT_DROP_PCT:-25}  # closure size is stable (1808-1958 observed).
+
 mkdir -p "$REPORT_DIR"
+
+# The previous report, captured BEFORE ours exists so the glob cannot pick up our own file.
+prev=$(ls -1t "$REPORT_DIR"/*.txt 2>/dev/null | head -1)
+
 # Timestamp, not just a date: a second run on the same day used to OVERWRITE the first.
 # That bit on 2026-10-22 -- a failed run silently destroyed that morning's 311-finding
 # baseline, so there was nothing to diff the post-update scan against.
@@ -41,52 +74,178 @@ report="$REPORT_DIR/$stamp.txt"
 
 note() { printf '%s\n' "$*" | tee -a "$report"; }
 
+# Integrity problems accumulate here; a non-empty array means DO NOT TRUST this report.
+alerts=()
+
 : > "$report"
 note "host-vuln-scan $stamp  (closure: $(readlink -f /run/current-system))"
+[[ -n $prev ]] && note "previous report: $(basename "$prev")"
 
 tools=$(nix build --no-link --print-out-paths \
   "$FLAKE#nixosConfigurations.yoga.pkgs.sbomnix" \
   "$FLAKE#nixosConfigurations.yoga.pkgs.grype" 2>>"$report") || {
   note "FAILED: could not build sbomnix/grype from $FLAKE"
+  notify-send -u critical -i dialog-error \
+    "host-vuln-scan could not run" "sbomnix/grype failed to build from $FLAKE
+Report: $report" 2>/dev/null || true
   exit 1
 }
 export PATH="$(echo "$tools" | sed 's|$|/bin|' | paste -sd:):$PATH"
 
+# ---- integrity: is the vulnerability DB actually usable and current? ------------------
+# A stale or invalid DB is the quietest possible failure: grype still exits 0 and still
+# prints a table, just with nothing in it.
+dbjson=$(grype db status -o json 2>/dev/null)
+if ! jq -e '.valid == true' <<<"$dbjson" >/dev/null 2>&1; then
+  alerts+=("grype DB is missing or invalid")
+  note "DB: INVALID"
+else
+  db_built=$(jq -r '.built // empty' <<<"$dbjson")
+  db_age_days=$(( ( $(date +%s) - $(date -d "$db_built" +%s 2>/dev/null || echo 0) ) / 86400 ))
+  note "DB: valid, built $db_built (${db_age_days}d old)"
+  ((db_age_days > DB_MAX_AGE_DAYS)) &&
+    alerts+=("grype DB is ${db_age_days}d old (>${DB_MAX_AGE_DAYS}d); findings will be incomplete")
+fi
+
 sbom=$(mktemp --suffix=.cdx.json)
-trap 'rm -f "$sbom"' EXIT
+jsonf=$(mktemp --suffix=.grype.json)
+normf=$(mktemp --suffix=.norm.json)
+trap 'rm -f "$sbom" "$jsonf" "$normf"' EXIT
 
 if ! sbomnix /run/current-system --cdx "$sbom" >>"$report" 2>&1; then
 	note "FAILED: sbomnix could not build an SBOM"
+	notify-send -u critical -i dialog-error \
+	  "host-vuln-scan could not run" "sbomnix failed to build an SBOM
+Report: $report" 2>/dev/null || true
 	exit 1
 fi
-note "SBOM components: $(jq '.components | length' "$sbom")"
+components=$(jq '.components | length' "$sbom")
+note "SBOM components: $components"
 
 cfg=()
 [[ -f $CONFIG ]] && cfg=(-c "$CONFIG")
 
-# Full table for the report, then count what crosses the threshold. --only-fixed is the
-# noise filter; severity is judged here rather than with --fail-on so that the report
-# always lists everything while only high/critical triggers a notification.
-grype "sbom:$sbom" --only-fixed "${cfg[@]}" -o table >>"$report" 2>&1
-high=$(grype "sbom:$sbom" --only-fixed "${cfg[@]}" -o json 2>/dev/null |
-	jq '[.matches[] | select(.vulnerability.severity == "Critical" or .vulnerability.severity == "High")] | length')
-high=${high:-0}
+# One grype run, two outputs: the human table into the report, JSON into a temp file for
+# the metrics below. Previously this ran grype three times over the same SBOM.
+# --only-fixed is the noise filter; severity is judged here rather than with --fail-on so
+# that the report always lists everything while only the policy above triggers a notify.
+grype "sbom:$sbom" --only-fixed "${cfg[@]}" -o table -o "json=$jsonf" >>"$report" 2>&1
+grype_rc=$?
+((grype_rc != 0)) && alerts+=("grype exited $grype_rc")
+
+# ---- integrity: did grype produce usable results at all? -----------------------------
+if [[ ! -s $jsonf ]] || ! jq -e '.matches' "$jsonf" >/dev/null 2>&1; then
+  alerts+=("grype produced no parseable JSON -- this report proves NOTHING about the closure")
+  findings=0 high=0 kev=0 ids=""
+  scan_ok=false
+else
+  scan_ok=true
+  # grype emits one match per STORE PATH, so a package with several outputs reports the
+  # same CVE several times -- curl (bin/lib/dev) yielded CVE-2026-92392 three times, which
+  # made .matches|length 59 against a 31-row table and wasted top-by-risk slots on
+  # duplicates. Collapse to one row per (CVE, package, version) and derive every metric
+  # from that, so the numbers agree with the table a human is reading.
+  jq '[.matches[] | {id: .vulnerability.id, name: .artifact.name, version: .artifact.version,
+                     sev: .vulnerability.severity, risk: (.vulnerability.risk // 0),
+                     kev: ((.vulnerability.knownExploited // []) | length)}]
+      | unique_by([.id, .name, .version])' "$jsonf" > "$normf"
+  findings=$(jq 'length' "$normf")
+  high=$(jq '[.[] | select(.sev == "Critical" or .sev == "High")] | length' "$normf")
+  kev=$(jq '[.[] | select(.kev > 0)] | length' "$normf")
+  ids=$(jq -r '[.[].id] | unique | join(" ")' "$normf")
+fi
 
 note ""
 note "high/critical (after ignores): $high"
+note "unique findings: $findings  (one row per CVE+package+version; grype counts store paths)"
 
-if ((high > 0)); then
-	pkgs=$(grype "sbom:$sbom" --only-fixed "${cfg[@]}" -o json 2>/dev/null |
-		jq -r '[.matches[] | select(.vulnerability.severity=="Critical" or .vulnerability.severity=="High")
-		        | .artifact.name] | unique | join(", ")')
-	notify-send -u normal -i security-high \
-		"$high fixable high/critical CVEs in the system closure" \
-		"${pkgs}
+# A genuinely clean closure has never happened on this machine. Zero findings with a
+# normal component count is the exact signature of the 2026-10-05 false all-clear.
+if [[ $scan_ok == true ]] && ((findings == 0)) && ((components > 100)); then
+  alerts+=("0 findings across $components components -- on this closure that has meant a broken scan, not a clean system")
+fi
+
+# ---- compare against the previous run -------------------------------------------------
+# Reports written before 2026-10-23 have no machine-readable block; the comparison is
+# skipped for those rather than reported as a change.
+prev_components="" prev_findings="" prev_ids=""
+if [[ -n $prev && -f $prev ]]; then
+  psum=$(grep -m1 '^SUMMARY ' "$prev" 2>/dev/null || true)
+  if [[ -n $psum ]]; then
+    prev_components=$(sed -n 's/.*components=\([0-9]*\).*/\1/p' <<<"$psum")
+    prev_findings=$(sed -n 's/.*findings=\([0-9]*\).*/\1/p' <<<"$psum")
+    prev_ids=$(grep -m1 '^CVES ' "$prev" 2>/dev/null | cut -d' ' -f2- || true)
+  fi
+fi
+
+new_ids="" gone_ids=""
+if [[ -n $prev_components ]]; then
+  if ((prev_components > 0)); then
+    drop=$(( (prev_components - components) * 100 / prev_components ))
+    ((drop > COMPONENT_DROP_PCT)) &&
+      alerts+=("component count fell ${drop}% ($prev_components -> $components); the SBOM is probably truncated")
+  fi
+  note "previous: components=$prev_components findings=$prev_findings  now: components=$components findings=$findings"
+
+  if [[ $scan_ok == true ]]; then
+    new_ids=$(comm -13 <(tr ' ' '\n' <<<"$prev_ids" | sort -u | grep -v '^$') \
+                       <(tr ' ' '\n' <<<"$ids"      | sort -u | grep -v '^$') | tr '\n' ' ')
+    gone_ids=$(comm -23 <(tr ' ' '\n' <<<"$prev_ids" | sort -u | grep -v '^$') \
+                        <(tr ' ' '\n' <<<"$ids"      | sort -u | grep -v '^$') | tr '\n' ' ')
+    note "new since previous:   ${new_ids:-none}"
+    note "gone since previous:  ${gone_ids:-none}"
+  fi
+else
+  note "no machine-readable block in the previous report -- baseline run, nothing to diff"
+fi
+
+# ---- rank by risk, not just severity -------------------------------------------------
+# grype computes risk = EPSS exploitation probability x severity, so it separates a
+# theoretical High from one being exploited in the wild. CISA KEV entries are called out
+# explicitly: those are confirmed exploited and outrank everything else.
+if [[ $scan_ok == true ]] && ((findings > 0)); then
+  note ""
+  note "top by risk (EPSS x severity; [KEV] = CISA known-exploited):"
+  jq -r 'sort_by(-.risk) | .[:8][]
+         | "  \(.id)  \(.name) \(.version)  \(.sev)  risk=\(.risk * 10 | round / 10)"
+           + (if .kev > 0 then "  [KEV]" else "" end)' "$normf" | tee -a "$report"
+fi
+
+# ---- notify -------------------------------------------------------------------------
+# Integrity first: a report that cannot be trusted is more urgent than its contents.
+if ((${#alerts[@]} > 0)); then
+  note ""
+  note "INTEGRITY ALERTS:"
+  for a in "${alerts[@]}"; do note "  - $a"; done
+  body=$(printf '%s\n' "${alerts[@]}")
+  notify-send -u critical -i dialog-warning \
+    "host-vuln-scan: results are NOT trustworthy" \
+    "$body
+
+Report: $report" 2>/dev/null || true
+elif [[ -n ${new_ids// /} ]] || ((kev > 0)); then
+  detail=""
+  [[ -n ${new_ids// /} ]] && detail+="New: ${new_ids}
+"
+  ((kev > 0)) && detail+="$kev CISA known-exploited.
+"
+  pkgs=$(jq -r '[.[] | select(.sev=="Critical" or .sev=="High") | .name] | unique | join(", ")' "$normf" 2>/dev/null)
+  notify-send -u $( ((kev > 0)) && echo critical || echo normal ) -i security-high \
+    "$high fixable high/critical CVEs in the system closure" \
+    "${detail}${pkgs}
 
 Report: $report
 Usually means the nixpkgs pin is behind; check for CPE false positives before acting." \
-		2>/dev/null || true
+    2>/dev/null || true
 fi
+
+# ---- machine-readable block, parsed by the next run ----------------------------------
+{
+  echo ""
+  echo "--- MACHINE READABLE (parsed by the next run; do not edit) ---"
+  echo "SUMMARY components=$components findings=$findings high=$high kev=$kev scan_ok=$scan_ok alerts=${#alerts[@]}"
+  echo "CVES $ids"
+} >> "$report"
 
 # Keep the directory from growing forever.
 ls -1t "$REPORT_DIR"/*.txt 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
