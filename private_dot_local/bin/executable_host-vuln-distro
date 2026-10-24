@@ -73,10 +73,32 @@ ID_OK = re.compile(r"^CVE-\d{4}-\d{4,}$")
 # both compare "newer" than every release and would flag the package forever.
 UNUSABLE = re.compile(r"[_+~]|(?:^|[.\-])(?:rc|alpha|beta|dev|pre|snapshot|git)", re.I)
 
+# A distro revision that indicates a patch applied to an UNCHANGED upstream version.
+# apk -r0 and dpkg -1 are the FIRST packaging of a new upstream release, where the
+# upstream number carries the fix and stripping is correct. -r1+, -2+ and the
+# +debNuM style mean the upstream version did not move: the patch IS the fix, so
+# stripping the revision destroys exactly the information we need.
+APK_REV = re.compile(r"^(.*)-r(\d+)$")
+DEB_REV = re.compile(r"^(.*?)-(\d+)(?:\.\d+)?(\+[A-Za-z0-9.~+]+)?$")
+
 EPOCH = re.compile(r"^\d+:")
 # apk `-r3`, pacman/dpkg `-1`, dpkg `-2+deb12u1`. Upstream versions do contain hyphens
 # (`1.0-beta`), so only strip a trailing field that actually looks like a revision.
 REV = re.compile(r"-(?:r\d+|\d+(?:[.+~][0-9A-Za-z.+~]*)?)$")
+
+
+def revision_beyond_first(v):
+    """True when only the revision moved, i.e. the fix is a patch on this upstream
+    version. Measured 2026-10-24: 14% of alpine/edge and 13% of debian/unstable upper
+    bounds are of this shape, and every one was previously invisible to this pass."""
+    v = EPOCH.sub("", v.strip())
+    m = APK_REV.match(v)
+    if m:
+        return int(m.group(2)) > 0
+    m = DEB_REV.match(v)
+    if m:
+        return int(m.group(2)) > 1 or bool(m.group(3))
+    return False
 
 
 def upstream(v):
@@ -138,6 +160,13 @@ def main():
                     help="host-vuln-patches output. Findings whose CVE the package's own "
                          "nixpkgs derivation patches are dropped; nixpkgs fixes many CVEs "
                          "without a version bump and a distro threshold cannot see that.")
+    ap.add_argument("--revfix-shared-threshold", type=int, default=3, metavar="N",
+                    help="in the revision-level bucket, a CVE appearing on N or more "
+                         "DIFFERENT packages is reported once as shared rather than per "
+                         "package. Go toolchain CVEs behave this way -- chainguard rebuilds "
+                         "every Go binary when Go is patched, so CVE-2026-56857 lands on "
+                         "gitleaks, gh, docker-compose, tailscale and more at once, and "
+                         "141 of 200 rows here came from seven Go packages. Default 3.")
     ap.add_argument("--unfixed-since-year", type=int, default=0,
                     help="only report affected-but-unfixed for CVEs of this year or later "
                          "(default: last year). Debian's unfixed set includes decades of "
@@ -217,7 +246,7 @@ def main():
         rows.extend(con.execute(q, chunk + osids))
 
     # Build candidates, collecting the version comparisons we need to resolve.
-    unfixed, cmps, pending = {}, [], []
+    unfixed, revfix, cmps, pending = {}, {}, [], []
     n_patched = n_suppressed = 0
     for cve, pkg, oid, blob in rows:
         cve = cve.upper()
@@ -248,13 +277,21 @@ def main():
             for con_s in constraints:
                 if not con_s:
                     continue
-                lo = hi = None
+                lo = hi = hi_raw = None
                 for part in con_s.split(","):
                     part = part.strip()
                     if part.startswith("<"):
-                        hi = upstream(part.lstrip("<=").strip())
+                        hi_raw = part.lstrip("<=").strip()
+                        hi = upstream(hi_raw)
                     elif part.startswith(">="):
                         lo = upstream(part[2:].strip())
+                # The distro fixed this by patching the EXACT upstream version installed
+                # here. Stripping the revision would make `installed < hi` false, so this
+                # was silently dropped. It is a weaker signal than a version bump -- it
+                # says "someone had to patch this release" -- so it gets its own bucket.
+                if hi_raw and hi == inst and revision_beyond_first(hi_raw):
+                    revfix[(cve, pkg, inst)] = (hi_raw, osname[oid])
+                    continue
                 if not usable_threshold(hi):
                     continue
                 pending.append((cve, pkg, inst, osname[oid], lo, hi))
@@ -283,8 +320,11 @@ def main():
 
     for key in affected:
         unfixed.pop(key, None)
+        revfix.pop(key, None)
+    for key in unfixed:
+        revfix.pop(key, None)
 
-    if not affected and not unfixed:
+    if not affected and not unfixed and not revfix:
         if n_patched:
             print(f"distro-feed watchlist: {n_patched} rows dropped as patched in nixpkgs")
         print("distro-feed watchlist: nothing new beyond the CPE pass")
@@ -293,6 +333,7 @@ def main():
 
     print(f"distro-feed watchlist ({len(affected)} with a fixed version, "
           f"{len(unfixed)} affected-but-unfixed"
+          + (f", {len(revfix)} patched-at-your-version" if revfix else "")
           + (f"; {n_patched} patched in nixpkgs" if n_patched else "")
           + (f"; {n_suppressed} suppressed" if n_suppressed else "") + ")")
     # Only feeds that actually contributed. Listing a configured-but-silent feed is how
@@ -336,7 +377,43 @@ def main():
             print(f"  {pkg:<22} {inst:<14} {'':<17} {len(cves):>3} CVE  [{', '.join(sorted(who))}]")
             print(f"      {', '.join(shown)}{more}")
 
-    ids = sorted({k[0] for k in affected} | {k[0] for k in unfixed})
+    if revfix:
+        # Split out CVEs that recur across many packages. A package-specific flaw appears
+        # on one package; a toolchain or vendored-dependency flaw lands on everything
+        # built with it, and reporting it per package buries the rest.
+        by_cve = defaultdict(set)
+        for (cve, pkg, _inst) in revfix:
+            by_cve[cve].add(pkg)
+        shared = {c for c, pkgs in by_cve.items() if len(pkgs) >= args.revfix_shared_threshold}
+        print()
+        print("  PATCHED AT YOUR EXACT VERSION  (a distro shipped a patch without moving")
+        print("  the upstream version, so this pass would otherwise miss it entirely.")
+        print("  WEAKER SIGNAL: it means someone had to patch this release, not that")
+        print("  nixpkgs has not -- the pedigree map has already removed what it claims.)")
+        groups = defaultdict(lambda: (set(), set()))
+        for (cve, pkg, inst), (raw, osn) in revfix.items():
+            if cve in shared:
+                continue
+            cves, who = groups[(pkg, inst)]
+            cves.add(cve)
+            who.add(osn)
+        for (pkg, inst) in sorted(groups, key=lambda k: (k[0], verkey(k[1]))):
+            cves, who = groups[(pkg, inst)]
+            shown = sorted(cves)[:4]
+            more = f" (+{len(cves) - len(shown)} more)" if len(cves) > len(shown) else ""
+            print(f"  {pkg:<22} {inst:<14} {'':<17} {len(cves):>3} CVE  [{', '.join(sorted(who))}]")
+            print(f"      {', '.join(shown)}{more}")
+        if shared:
+            pkgs_hit = sorted({p for c in shared for p in by_cve[c]})
+            print()
+            print(f"  shared across {len(pkgs_hit)} packages ({len(shared)} CVEs) -- likely a "
+                  f"toolchain or vendored dependency,")
+            print(f"  not these packages' own code. Investigate the toolchain, not each binary:")
+            print(f"      packages: {', '.join(pkgs_hit)}")
+            print(f"      CVEs: {', '.join(sorted(shared)[:8])}"
+                  + (f" (+{len(shared) - 8} more)" if len(shared) > 8 else ""))
+
+    ids = sorted({k[0] for k in affected} | {k[0] for k in unfixed} | {k[0] for k in revfix})
     print()
     print("CVES_DISTRO " + " ".join(ids))
     return 0
