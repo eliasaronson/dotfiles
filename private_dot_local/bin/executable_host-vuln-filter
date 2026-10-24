@@ -1,0 +1,242 @@
+#!/usr/bin/env python3
+"""Normalise and filter grype findings for a Nix closure.
+
+Replaces the jq pipeline that used to live in host-vuln-scan: dedupe, drop what nixpkgs
+already patches, drop NVD data artefacts, apply suppressions. Everything it removes is
+REPORTED with a reason, never silently dropped.
+
+THE FILTERS, in the order applied. Each one exists because of a measured false positive
+on this closure (2026-10-23), not in anticipation of one.
+
+  patched           The package's own derivation patches this CVE. nixpkgs fixes plenty
+                    of CVEs without a version bump, so the version never moves and a
+                    comparison-based scanner reports it forever. 7 of 24 findings were
+                    avahi 0.8 CVEs of exactly this kind. Needs --patched-map.
+
+  artefact:date     Every recorded fix "version" is a DATE (gcc fix=2023-09-12, ada
+                    fix=2024-10-01, mujs fix=2017-01-12). NVD recorded upstream commit
+                    dates in the version field; there is nothing to compare against.
+
+  artefact:prerel   Every recorded fix version is a prerelease (python3 fix=3.15.0a6 and
+                    fix=3.15.0rc3, dnsmasq fix=2.93test9, avahi fix=0.9-rc4). The
+                    installed release cannot be "behind" an unreleased version.
+
+  already-fixed     The installed version is at or past EVERY recorded fix version, so
+                    CPE string ordering simply got it wrong: glibc 2.44-57 against
+                    fix=2.44, libtpms 0.10.2-unstable-2026-05-06 against fix=0.10.2,
+                    linux 7.3 against fix=4.9.249/4.14.213/4.19.164/5.4.86.
+                    Uses the MAXIMUM fix version, so a multi-branch advisory still
+                    reports: curl 8.22.0 against fix=8.14.3,8.16.2,8.20.2,8.23.0 is
+                    KEPT, because 8.23.0 is the fix for the branch it is on.
+                    CAVEAT: this assumes fixes propagate forward, which holds for
+                    mainline-forward projects. If NVD recorded only an old branch's fix
+                    while a newer branch stayed vulnerable, this would wrongly suppress.
+                    That is why it is listed in the report rather than hidden.
+
+  suppressed        Matched an entry in the suppression file (--suppress). For judgement
+                    calls no rule can make -- "not reachable", "wrong platform", CPE
+                    collisions across projects sharing a name.
+
+Version comparison goes through builtins.compareVersions in one batched `nix eval`, never
+a reimplementation: the component ordering has corners and a wrong answer here suppresses
+a real finding silently.
+
+Usage: host-vuln-filter GRYPE.json [--patched-map M.json] [--suppress S.toml]
+"""
+import argparse, json, os, re, subprocess, sys, tempfile, tomllib
+
+# A plain upstream release. Anything else cannot be meaningfully compared.
+DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+PREREL = re.compile(r"[_+~]|(?:^|[.\-])(?:rc|alpha|beta|dev|pre|test|snapshot|git)\d*$", re.I)
+# Suffixes glued to the last numeric component: 3.15.0rc3, 2.93test9.
+GLUED_WORD = re.compile(r"\d+(?:rc|alpha|beta|dev|pre|test|snapshot)\d*$", re.I)
+# Single-letter prereleases (python 3.15.0a6) REQUIRE trailing digits, because a bare
+# trailing letter is a real release in several projects -- openssl 1.1.1a through 1.1.1w
+# are releases, not prereleases, and flagging them would suppress genuine findings.
+GLUED_LETTER = re.compile(r"\d+[ab]\d+$", re.I)
+
+
+def is_date(v):
+    return bool(DATE.match(v.strip()))
+
+
+def is_prerelease(v):
+    v = v.strip()
+    return bool(PREREL.search(v) or GLUED_WORD.search(v) or GLUED_LETTER.search(v))
+
+
+def comparable(v):
+    return bool(v.strip()) and not is_date(v) and not is_prerelease(v)
+
+
+def nix_compare(pairs):
+    """builtins.compareVersions over every (a, b), in one nix process. -1/0/1 each.
+
+    NOTE: duplicated from host-vuln-distro. Both are single-file scripts deployed by
+    chezmoi, so there is nowhere shared to put it yet; consolidate when these move into
+    a real package.
+    """
+    if not pairs:
+        return []
+    esc = lambda s: s.replace("\\", "\\\\").replace('"', '\\"')
+    expr = ("builtins.map (p: builtins.compareVersions (builtins.head p) "
+            "(builtins.elemAt p 1)) [\n")
+    expr += "".join(f'  [ "{esc(a)}" "{esc(b)}" ]\n' for a, b in pairs) + "]\n"
+    with tempfile.NamedTemporaryFile("w", suffix=".nix", delete=False) as fh:
+        fh.write(expr)
+        path = fh.name
+    try:
+        out = subprocess.run(["nix", "eval", "--file", path, "--json"],
+                             capture_output=True, text=True, timeout=600)
+        if out.returncode != 0:
+            print(f"host-vuln-filter: nix eval failed: {out.stderr.strip()[:300]}",
+                  file=sys.stderr)
+            return None
+        return json.loads(out.stdout)
+    finally:
+        os.unlink(path)
+
+
+def load_suppressions(path):
+    """[[ignore]] entries: id, package, version, reason, optional pass = cpe|distro|both."""
+    if not path:
+        return []
+    with open(path, "rb") as fh:
+        doc = tomllib.load(fh)
+    out = []
+    for e in doc.get("ignore", []):
+        if not e.get("id") or not e.get("reason"):
+            print(f"host-vuln-filter: suppression missing id or reason: {e}", file=sys.stderr)
+            continue
+        out.append(e)
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("grype_json")
+    ap.add_argument("--patched-map")
+    ap.add_argument("--suppress")
+    ap.add_argument("--out", help="write the result JSON here (default stdout)")
+    args = ap.parse_args()
+
+    with open(args.grype_json) as fh:
+        doc = json.load(fh)
+    if "matches" not in doc:
+        print("host-vuln-filter: input has no .matches", file=sys.stderr)
+        return 2
+
+    # Dedupe: grype emits one match per STORE PATH, so a package with several outputs
+    # reports the same CVE several times (curl bin/lib/dev gave CVE-2026-92392 three
+    # times, making .matches|length 59 against a 31-row table).
+    seen, findings = set(), []
+    for m in doc["matches"]:
+        v, a = m.get("vulnerability", {}), m.get("artifact", {})
+        key = (v.get("id"), a.get("name"), a.get("version"))
+        if None in key or key in seen:
+            continue
+        seen.add(key)
+        findings.append({
+            "id": v["id"], "name": a["name"], "version": a["version"],
+            "sev": v.get("severity", "Unknown"), "risk": v.get("risk") or 0,
+            "kev": len(v.get("knownExploited") or []),
+            "epss": ((v.get("epss") or [{}])[0] or {}).get("epss"),
+            "fix": (v.get("fix") or {}).get("versions") or [],
+        })
+
+    patched = {}
+    if args.patched_map:
+        try:
+            with open(args.patched_map) as fh:
+                for pk in (json.load(fh) or {}).get("packages", []):
+                    patched[(pk["pname"], pk["version"])] = {c.upper() for c in pk["cves"]}
+        except (OSError, ValueError, KeyError) as exc:
+            print(f"host-vuln-filter: could not read {args.patched_map}: {exc}", file=sys.stderr)
+
+    try:
+        supp = load_suppressions(args.suppress)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        print(f"host-vuln-filter: could not read {args.suppress}: {exc}", file=sys.stderr)
+        return 2
+
+    def suppression_for(f):
+        for e in supp:
+            if e.get("pass", "both") not in ("both", "cpe"):
+                continue
+            if e["id"].upper() != f["id"].upper():
+                continue
+            if e.get("package") and e["package"] != f["name"]:
+                continue
+            if e.get("version") and str(e["version"]) != f["version"]:
+                continue
+            return e
+        return None
+
+    # Decide everything that needs no version comparison, and queue the rest.
+    pending, cmps = [], []
+    for f in findings:
+        if f["id"].upper() in patched.get((f["name"], f["version"]), ()):
+            f["_reason"] = "patched"
+        elif (e := suppression_for(f)) is not None:
+            f["_reason"] = "suppressed"
+            f["_detail"] = e["reason"]
+        elif f["fix"] and all(is_date(x) for x in f["fix"]):
+            f["_reason"] = "artefact:date"
+            f["_detail"] = "every recorded fix version is a date: " + ", ".join(f["fix"])
+        elif f["fix"] and all(is_prerelease(x) for x in f["fix"]):
+            f["_reason"] = "artefact:prerel"
+            f["_detail"] = "every recorded fix version is a prerelease: " + ", ".join(f["fix"])
+        else:
+            usable = [x.strip() for x in f["fix"] if comparable(x)]
+            if usable:
+                pending.append((f, usable))
+                for u in usable:
+                    cmps.append((f["version"], u))
+            else:
+                f["_reason"] = "kept"
+
+    verdicts = nix_compare(cmps)
+    if verdicts is None:
+        return 3
+    it = iter(verdicts)
+    for f, usable in pending:
+        # installed >= EVERY usable fix version -> CPE ordering got it wrong.
+        results = [next(it) for _ in usable]
+        if all(r >= 0 for r in results):
+            f["_reason"] = "already-fixed"
+            f["_detail"] = (f"installed {f['version']} is at or past every recorded fix: "
+                            + ", ".join(usable))
+        else:
+            f["_reason"] = "kept"
+
+    kept = [f for f in findings if f["_reason"] == "kept"]
+    removed = [f for f in findings if f["_reason"] != "kept"]
+    for f in kept:
+        f.pop("_reason", None)
+    out = {
+        "kept": sorted(kept, key=lambda f: (-(f["risk"] or 0), f["name"], f["id"])),
+        "removed": sorted(removed, key=lambda f: (f["_reason"], f["name"], f["id"])),
+        "summary": {
+            "total": len(findings),
+            "kept": len(kept),
+            "high_critical": sum(1 for f in kept if f["sev"] in ("High", "Critical")),
+            "kev": sum(1 for f in kept if f["kev"]),
+            "removed_by": {r: sum(1 for f in removed if f["_reason"] == r)
+                           for r in sorted({f["_reason"] for f in removed})},
+        },
+    }
+    text = json.dumps(out, indent=2)
+    if args.out:
+        with open(args.out, "w") as fh:
+            fh.write(text + "\n")
+    else:
+        print(text)
+    s = out["summary"]
+    print(f"host-vuln-filter: {s['kept']} kept of {s['total']} "
+          f"({s['high_critical']} high/critical, {s['kev']} KEV); removed "
+          + ", ".join(f"{n} {r}" for r, n in s["removed_by"].items()), file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

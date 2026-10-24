@@ -31,7 +31,7 @@ READ THE OUTPUT AS A WATCHLIST, NOT AS FINDINGS
 
 Usage:  host-vuln-distro SBOM.cdx.json [--exclude-cves "CVE-1 CVE-2 ..."]
 """
-import argparse, json, os, re, sqlite3, subprocess, sys, tempfile
+import argparse, json, os, re, sqlite3, subprocess, sys, tempfile, tomllib
 from datetime import date
 from collections import defaultdict
 
@@ -109,6 +109,10 @@ def main():
     ap.add_argument("--db", default=os.environ.get("GRYPE_DB", DB_DEFAULT))
     ap.add_argument("--exclude-cves", default="",
                     help="space-separated CVE ids already reported by the CPE pass")
+    ap.add_argument("--suppress", metavar="TOML",
+                    help="shared suppression file; [[ignore]] entries with "
+                         "pass = \"both\" (default) or \"distro\" apply here. Without "
+                         "this the distro pass has no way to silence a false positive.")
     ap.add_argument("--patched-map", metavar="JSON",
                     help="host-vuln-patches output. Findings whose CVE the package's own "
                          "nixpkgs derivation patches are dropped; nixpkgs fixes many CVEs "
@@ -138,6 +142,18 @@ def main():
         return 2
 
     excluded = {c for c in args.exclude_cves.split() if c}
+    # (cve, package, version) judgement calls from the shared suppression file.
+    suppressed = set()
+    if args.suppress:
+        try:
+            with open(args.suppress, "rb") as fh:
+                for e in (tomllib.load(fh) or {}).get("ignore", []):
+                    if e.get("pass", "both") in ("both", "distro") and e.get("id"):
+                        suppressed.add((e["id"].upper(), e.get("package"),
+                                        str(e["version"]) if e.get("version") else None))
+        except (OSError, ValueError) as exc:
+            print(f"host-vuln-distro: could not read {args.suppress}: {exc}", file=sys.stderr)
+
     # (pname, version) -> set of CVEs the derivation patches.
     patched = {}
     if args.patched_map:
@@ -181,7 +197,7 @@ def main():
 
     # Build candidates, collecting the version comparisons we need to resolve.
     unfixed, cmps, pending = {}, [], []
-    n_patched = 0
+    n_patched = n_suppressed = 0
     for cve, pkg, oid, blob in rows:
         cve = cve.upper()
         if cve in excluded or cve in rejected or not ID_OK.match(cve):
@@ -194,6 +210,10 @@ def main():
         for inst in installed[pkg]:
             if cve in patched.get((pkg, inst), ()):
                 n_patched += 1
+                continue
+            if ((cve, pkg, inst) in suppressed or (cve, pkg, None) in suppressed
+                    or (cve, None, None) in suppressed):
+                n_suppressed += 1
                 continue
             if not any(constraints):
                 # Listed as affected with no fixed version recorded. This is the brotli
@@ -252,7 +272,8 @@ def main():
 
     print(f"distro-feed watchlist ({len(affected)} with a fixed version, "
           f"{len(unfixed)} affected-but-unfixed"
-          + (f"; {n_patched} dropped as patched in nixpkgs)" if n_patched else ")"))
+          + (f"; {n_patched} patched in nixpkgs" if n_patched else "")
+          + (f"; {n_suppressed} suppressed" if n_suppressed else "") + ")")
     print("sources: " + ", ".join(sorted(set(osname.values()))))
     print("NOTE: nixpkgs may carry a backported patch without a version bump -- verify "
           "before acting.")

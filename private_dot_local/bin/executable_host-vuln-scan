@@ -35,8 +35,20 @@
 # being scanned and need no second nixpkgs instance. grype keeps a ~3 GB vulnerability DB
 # in ~/.cache/grype and refreshes it itself.
 #
-# Ignores live in ~/.config/grype/host.yaml, pinned to a version like the CI config, so an
-# entry expires by itself once nixpkgs ships a new build.
+# STAGES. This script orchestrates; each stage is a separate tool with its own rationale
+# in its own header:
+#   host-vuln-patches  which CVEs the nixpkgs derivations already patch in place
+#   grype              the CPE pass, run with NO ignore config (see below)
+#   host-vuln-filter   dedupe, drop patched + NVD data artefacts, apply suppressions
+#   host-vuln-distro   the second pass over rolling distro advisory feeds
+#
+# Suppression lives in ONE file, ~/.config/host-vuln/suppress.toml, shared by both passes
+# and pinned to the installed version so an entry expires by itself once nixpkgs ships a
+# new build. grype's own -c config is deliberately NOT used: anything hidden there
+# vanished from the report entirely, whereas host-vuln-filter lists every removal with a
+# reason. That file now holds only judgement calls (wrong platform, not reachable, CPE
+# collisions) -- date/prerelease/already-fixed artefacts and nixpkgs-patched CVEs are
+# derived mechanically, which retired 6 of the 13 entries it used to need.
 #
 # NOTIFICATION POLICY. A high/critical COUNT is a bad trigger: a steady 11 reads the same
 # whether it is the same 11 or a fresh 11, and a count of 0 reads as "clean" when it
@@ -52,7 +64,7 @@ set -uo pipefail
 
 FLAKE=${FLAKE:-$HOME/nixos-config}
 REPORT_DIR=${REPORT_DIR:-$HOME/.local/state/host-vuln-scan}
-CONFIG=${CONFIG:-$HOME/.config/grype/host.yaml}
+SUPPRESS=${SUPPRESS:-$HOME/.config/host-vuln/suppress.toml}
 KEEP=16  # reports to retain. Raised from 8 when reports became timestamped rather
          # than dated: ad-hoc runs now create their own files instead of replacing
          # the day's, so 8 no longer bought ~2 months of weekly history.
@@ -110,9 +122,8 @@ fi
 sbom=$(mktemp --suffix=.cdx.json)
 jsonf=$(mktemp --suffix=.grype.json)
 normf=$(mktemp --suffix=.norm.json)
-rawf=$(mktemp --suffix=.raw.json)
 patchf=$(mktemp --suffix=.patches.json)
-trap 'rm -f "$sbom" "$jsonf" "$normf" "$rawf" "$patchf"' EXIT
+trap 'rm -f "$sbom" "$jsonf" "$normf" "$patchf"' EXIT
 
 if ! sbomnix /run/current-system --cdx "$sbom" >>"$report" 2>&1; then
 	note "FAILED: sbomnix could not build an SBOM"
@@ -141,14 +152,14 @@ if [[ ${PATCH_FILTER:-1} == 1 && -x $HOME/.local/bin/host-vuln-patches ]]; then
 $(jq '[.packages[].cves[]] | unique | length' "$patchf") CVEs patched in place"
 fi
 
-cfg=()
-[[ -f $CONFIG ]] && cfg=(-c "$CONFIG")
-
+# grype runs with NO ignore config on purpose. Suppression now lives in $SUPPRESS and is
+# applied by host-vuln-filter, which REPORTS everything it removes with a reason. Hiding
+# findings inside grype's config meant they vanished from the report entirely.
 # One grype run, two outputs: the human table into the report, JSON into a temp file for
 # the metrics below. Previously this ran grype three times over the same SBOM.
 # --only-fixed is the noise filter; severity is judged here rather than with --fail-on so
 # that the report always lists everything while only the policy above triggers a notify.
-grype "sbom:$sbom" --only-fixed "${cfg[@]}" -o table -o "json=$jsonf" >>"$report" 2>&1
+grype "sbom:$sbom" --only-fixed -o table -o "json=$jsonf" >>"$report" 2>&1
 grype_rc=$?
 ((grype_rc != 0)) && alerts+=("grype exited $grype_rc")
 
@@ -157,46 +168,35 @@ if [[ ! -s $jsonf ]] || ! jq -e '.matches' "$jsonf" >/dev/null 2>&1; then
   alerts+=("grype produced no parseable JSON -- this report proves NOTHING about the closure")
   findings=0 high=0 kev=0 ids=""
   scan_ok=false
+elif ! "$HOME/.local/bin/host-vuln-filter" "$jsonf" \
+        --patched-map "$patchf" \
+        ${SUPPRESS:+--suppress "$SUPPRESS"} \
+        --out "$normf" 2>>"$report"; then
+  alerts+=("host-vuln-filter failed -- findings are unnormalised and unsuppressed")
+  findings=0 high=0 kev=0 ids=""
+  scan_ok=false
 else
   scan_ok=true
-  # grype emits one match per STORE PATH, so a package with several outputs reports the
-  # same CVE several times -- curl (bin/lib/dev) yielded CVE-2026-92392 three times, which
-  # made .matches|length 59 against a 31-row table and wasted top-by-risk slots on
-  # duplicates. Collapse to one row per (CVE, package, version) and derive every metric
-  # from that, so the numbers agree with the table a human is reading.
-  jq '[.matches[] | {id: .vulnerability.id, name: .artifact.name, version: .artifact.version,
-                     sev: .vulnerability.severity, risk: (.vulnerability.risk // 0),
-                     kev: ((.vulnerability.knownExploited // []) | length)}]
-      | unique_by([.id, .name, .version])' "$jsonf" > "$rawf"
-
-  # Drop findings the package's own derivation patches. Keyed on name AND version, so an
-  # entry stops applying the moment nixpkgs moves the version -- the same self-expiring
-  # property the hand-written ignores in host.yaml have.
-  jq --slurpfile pm "$patchf" '
-      ($pm[0].packages | map({key: (.pname + "@" + .version), value: .cves}) | from_entries) as $m
-      | [ .[] | . as $f | $f + { patched: ((($m[($f.name + "@" + $f.version)]) // []) | index($f.id) != null) } ]
-      | { kept: [ .[] | select(.patched | not) | del(.patched) ],
-          suppressed: [ .[] | select(.patched) | del(.patched) ] }' \
-    "$rawf" > "$normf.split"
-  jq '.kept' "$normf.split" > "$normf"
-  nsupp=$(jq '.suppressed | length' "$normf.split")
-  if ((nsupp > 0)); then
+  # host-vuln-filter dedupes by (CVE, package, version), drops what the nixpkgs
+  # derivation patches and what is an NVD data artefact, applies $SUPPRESS, and reports
+  # every removal with a reason. See its header for the rules.
+  findings=$(jq '.summary.kept' "$normf")
+  high=$(jq '.summary.high_critical' "$normf")
+  kev=$(jq '.summary.kev' "$normf")
+  ids=$(jq -r '[.kept[].id] | unique | join(" ")' "$normf")
+  nremoved=$(jq '.removed | length' "$normf")
+  if ((nremoved > 0)); then
     note ""
-    note "suppressed as already patched by nixpkgs ($nsupp):"
-    jq -r '.suppressed | sort_by(.name, .id)[] | "  \(.id)  \(.name) \(.version)  \(.sev)"' \
-      "$normf.split" | tee -a "$report"
+    note "removed by host-vuln-filter ($nremoved) -- listed, not hidden:"
+    jq -r '.removed[] | "  \(.["_reason"])  \(.name) \(.version)  \(.id)"
+                        + (if .["_detail"] then "\n        \(.["_detail"])" else "" end)' \
+      "$normf" | tee -a "$report"
   fi
-  rm -f "$normf.split"
-
-  findings=$(jq 'length' "$normf")
-  high=$(jq '[.[] | select(.sev == "Critical" or .sev == "High")] | length' "$normf")
-  kev=$(jq '[.[] | select(.kev > 0)] | length' "$normf")
-  ids=$(jq -r '[.[].id] | unique | join(" ")' "$normf")
 fi
 
 note ""
-note "high/critical (after ignores): $high"
-note "unique findings: $findings  (one row per CVE+package+version; grype counts store paths)"
+note "high/critical (after filtering + suppression): $high"
+note "kept findings: $findings  (deduped by CVE+package+version)"
 
 # A genuinely clean closure has never happened on this machine. Zero findings with a
 # normal component count is the exact signature of the 2026-10-05 false all-clear.
@@ -245,7 +245,7 @@ fi
 if [[ $scan_ok == true ]] && ((findings > 0)); then
   note ""
   note "top by risk (EPSS x severity; [KEV] = CISA known-exploited):"
-  jq -r 'sort_by(-.risk) | .[:8][]
+  jq -r '.kept[:8][]
          | "  \(.id)  \(.name) \(.version)  \(.sev)  risk=\(.risk * 10 | round / 10)"
            + (if .kev > 0 then "  [KEV]" else "" end)' "$normf" | tee -a "$report"
 fi
@@ -261,7 +261,7 @@ if [[ $DISTRO_PASS == 1 && -x $HOME/.local/bin/host-vuln-distro ]]; then
   note ""
   note "=== second pass: distro advisory feeds (watchlist, not findings) ==="
   if dout=$("$HOME/.local/bin/host-vuln-distro" "$sbom" --exclude-cves "$ids" \
-              --patched-map "$patchf" 2>&1); then
+              --patched-map "$patchf" ${SUPPRESS:+--suppress "$SUPPRESS"} 2>&1); then
     printf '%s\n' "$dout" >> "$report"
     distro_ids=$(grep -m1 '^CVES_DISTRO ' <<<"$dout" | cut -d' ' -f2- || true)
     # Only diff when the previous report ran this pass too, otherwise the first run after
@@ -300,7 +300,7 @@ elif [[ -n ${new_ids// /} ]] || [[ -n ${distro_new// /} ]] || ((kev > 0)); then
 "
   ((kev > 0)) && detail+="$kev CISA known-exploited.
 "
-  pkgs=$(jq -r '[.[] | select(.sev=="Critical" or .sev=="High") | .name] | unique | join(", ")' "$normf" 2>/dev/null)
+  pkgs=$(jq -r '[.kept[] | select(.sev=="Critical" or .sev=="High") | .name] | unique | join(", ")' "$normf" 2>/dev/null)
   notify-send -u $( ((kev > 0)) && echo critical || echo normal ) -i security-high \
     "$high fixable high/critical CVEs in the system closure" \
     "${detail}${pkgs}
