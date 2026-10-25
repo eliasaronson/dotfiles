@@ -139,7 +139,44 @@ The credential helper in `~/.gitconfig` is `!gh auth git-credential` with no
 absolute path, so it resolves via `PATH` on any machine. It only applies to
 HTTPS remotes; SSH remotes use the key and never consult it.
 
-## 6. Verify no plaintext credentials remain
+## 6. Canary key
+
+A deliberately useless Anthropic key, planted where a thief or an exfiltrating
+dependency would look. Nothing legitimate ever calls it, so a single token of
+usage is proof that something read a file it had no business reading.
+
+Mint it in the Console, in its own **`canary`** workspace, with a plausible
+boring name. Unlike an AWS access key, the holder cannot query a key's name or
+workspace, so the name leaks nothing. Set the workspace spend limit to the
+minimum as a damage cap.
+
+Detection is the `canary-watch` Modal app in this repo (chezmoi-ignored; it is
+source, not a dotfile). It polls the Admin usage report every five minutes at
+`1m` granularity, filtered to the `canary` workspace, and alerts on any
+non-zero token count. Usage appears within about five minutes, so expect
+detection inside ten.
+
+    cd ~/.local/share/chezmoi/canary-watch
+    modal secret create anthropic-canary \
+      ANTHROPIC_ADMIN_KEY=sk-ant-admin01-... \
+      ALERT_URL=https://ntfy.sh/<random-topic>
+    modal deploy canary_watch.py
+    modal run canary_watch.py::probe      # expect []
+
+It runs on Modal, not here, **on purpose**: one of the things it detects is
+this laptop being stolen, and a watcher that dies with the laptop detects
+nothing. The daily `heartbeat` exists for the same reason — silence from a
+tripwire is indistinguishable from a tripwire that stopped running.
+
+The Admin API key is a real credential and a workspace-scoped key cannot read
+the usage report, so there is no less-privileged option. It lives only in the
+Modal secret. Do not also seal a copy here unless something local needs it.
+
+**The plant inventory does not belong in this repo.** Anyone holding the disk
+can read this file, and a list of which keys are fake is exactly what defeats a
+canary. Keep the paths in the password manager instead.
+
+## 7. Verify no plaintext credentials remain
 
     ls -l ~/.config/{fly,modal}/*.cred ~/.config/sops/age/keys.cred   # all 0600
     test ! -e ~/.modal.toml && echo "modal: sealed"
